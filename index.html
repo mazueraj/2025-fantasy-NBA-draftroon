@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Basketball Draft Board</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; }
+        .container { max-width: 1200px; margin: 20px auto; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; }
+        .tabs-and-reset { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-right: 20px; }
+        .tabs { display: flex; }
+        .tab-button { flex-grow: 1; padding: 15px 20px; cursor: pointer; text-align: center; font-size: 16px; font-weight: 600; color: #555; background-color: #f9f9f9; transition: all 0.2s; border-radius: 8px 8px 0 0; border: none; }
+        .tab-button.active { background-color: #007bff; color: white; border-color: #007bff; }
+        .tab-button:hover:not(.active) { background-color: #e2f0ff; }
+        
+        .reset-button {
+            padding: 8px 15px;
+            background-color: #dc3545; /* Red color */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .reset-button:hover {
+            background-color: #c82333;
+        }
+
+        .tab-content { padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background-color: #007bff; color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; cursor: pointer; }
+        tr:hover { background-color: #f1f1f1; }
+        .player-row { cursor: pointer; transition: background-color 0.15s; }
+        .drafted { text-decoration: line-through; opacity: 0.4; background-color: #ffe0e0 !important; }
+        .drafted:hover { opacity: 0.8; background-color: #f1f1f1 !important; }
+        td:nth-child(5) { font-weight: bold; color: #007bff; } /* Highlight Total FP column */
+        .header-section { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #e9ecef; border-radius: 8px 8px 0 0; }
+        .scoring-note { font-size: 12px; color: #6c757d; margin-top: 5px; }
+        .chart-container { margin-top: 20px; padding: 20px; border-top: 1px solid #ddd; }
+        .chart-title { font-size: 18px; font-weight: 700; color: #333; margin-bottom: 15px; text-align: center; }
+
+        /* Chart-specific styles */
+        .scatter-plot { position: relative; width: 100%; height: 300px; border: 1px solid #ccc; background-color: #fff; margin-bottom: 20px; }
+        .plot-point { position: absolute; width: 8px; height: 8px; border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
+        .plot-point:hover { transform: scale(1.8); z-index: 10; }
+        .plot-label { position: absolute; font-size: 12px; color: #666; }
+        .axis-label { position: absolute; font-weight: 600; color: #333; }
+        .x-label { bottom: 5px; left: 50%; transform: translateX(-50%); }
+        .y-label { top: 50%; left: 5px; transform: translateY(-50%) rotate(-90deg); transform-origin: left center; }
+        .tooltip { position: absolute; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px 10px; border-radius: 3px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 20; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <h2>Fantasy Draft Board (Click Player to Draft/Undraft)</h2>
+        <div class="scoring-note">
+            *Ranking calculated using: **PTS + TRB + AST + 2*STL + 2*BLK - TOV**
+        </div>
+    </div>
+    
+    <div class="tabs-and-reset">
+        <div class="tabs">
+            <button class="tab-button active" onclick="showPosition('ALL')">ALL (Total FP)</button>
+            <button class="tab-button" onclick="showPosition('PG')">PG</button>
+            <button class="tab-button" onclick="showPosition('SG')">SG</button>
+            <button class="tab-button" onclick="showPosition('SF')">SF</button>
+            <button class="tab-button" onclick="showPosition('PF')">PF</button>
+            <button class="tab-button" onclick="showPosition('C')">C</button>
+        </div>
+        <button class="reset-button" onclick="resetDraftBoard()">Reset Draft Board</button>
+    </div>
+
+    <div class="tab-content">
+        <table id="draftTable">
+            <thead>
+                <tr>
+                    <th data-sort="rank" id="rankHeader">Rank</th>
+                    <th data-sort="player">Player</th>
+                    <th data-sort="team">Team</th>
+                    <th data-sort="pos">Pos</th>
+                    <th data-sort="totalFP">Total FP (Durability)</th>
+                    <th data-sort="fpPerG">FP/G (Efficiency)</th>
+                    <th data-sort="g">G</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-title">Efficiency (FP/G) vs. Durability (Total FP)</div>
+        <div class="scatter-plot" id="scatterPlot">
+            <div class="axis-label y-label">FP/G (Efficiency)</div>
+            <div class="axis-label x-label">Total FP (Durability)</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ** FANTASY DATA **
+    const playerData = [
+        { "player": "Nikola Jokic", "team": "DEN", "pos": "C", "g": 70, "totalFP": 3780.0, "fpPerG": 54.0 },
+        { "player": "Shai Gilgeous-Alexander", "team": "OKC", "pos": "PG", "g": 76, "totalFP": 3579.6, "fpPerG": 47.1 },
+        { "player": "Giannis Antetokounmpo", "team": "MIL", "pos": "PF", "g": 67, "totalFP": 3343.3, "fpPerG": 49.9 },
+        { "player": "Anthony Edwards", "team": "MIN", "pos": "SG", "g": 79, "totalFP": 3017.8, "fpPerG": 38.2 },
+        { "player": "Jayson Tatum", "team": "BOS", "pos": "PF", "g": 72, "totalFP": 3009.6, "fpPerG": 41.8 },
+        { "player": "James Harden", "team": "LAC", "pos": "PG", "g": 79, "totalFP": 2954.6, "fpPerG": 37.4 },
+        { "player": "Karl-Anthony Towns", "team": "NYK", "pos": "C", "g": 72, "totalFP": 2952.0, "fpPerG": 41.0 },
+        { "player": "Devin Booker", "team": "PHO", "pos": "SG", "g": 75, "totalFP": 2707.5, "fpPerG": 36.1 },
+        { "player": "Domantas Sabonis", "team": "SAC", "pos": "C", "g": 70, "totalFP": 2681.0, "fpPerG": 38.3 },
+        { "player": "Tyrese Haliburton", "team": "IND", "pos": "PG", "g": 73, "totalFP": 2620.7, "fpPerG": 35.9 },
+        { "player": "Trae Young", "team": "ATL", "pos": "PG", "g": 76, "totalFP": 2568.4, "fpPerG": 33.8 },
+        { "player": "Cade Cunningham", "team": "DET", "pos": "PG", "g": 70, "totalFP": 2520.0, "fpPerG": 36.0 },
+        { "player": "Jalen Brunson", "team": "NYK", "pos": "PG", "g": 65, "totalFP": 2483.5, "fpPerG": 38.2 },
+        { "player": "LeBron James", "team": "LAL", "pos": "SF", "g": 70, "totalFP": 2464.0, "fpPerG": 35.2 },
+        { "player": "Bam Adebayo", "team": "MIA", "pos": "C", "g": 78, "totalFP": 2420.4, "fpPerG": 31.0 },
+        { "player": "Kevin Durant", "team": "PHO", "pos": "PF", "g": 62, "totalFP": 2350.6, "fpPerG": 37.9 },
+        { "player": "Darius Garland", "team": "CLE", "pos": "PG", "g": 75, "totalFP": 2325.0, "fpPerG": 31.0 },
+        { "player": "Nikola Vučević", "team": "CHI", "pos": "C", "g": 73, "totalFP": 2307.9, "fpPerG": 31.6 },
+        { "player": "Tyrese Maxey", "team": "PHI", "pos": "PG", "g": 52, "totalFP": 2267.2, "fpPerG": 43.6 },
+        { "player": "Alperen Şengün", "team": "HOU", "pos": "C", "g": 76, "totalFP": 2261.2, "fpPerG": 29.8 },
+        { "player": "Jalen Williams", "team": "OKC", "pos": "SG", "g": 69, "totalFP": 2242.5, "fpPerG": 32.5 },
+        { "player": "Pascal Siakam", "team": "IND", "pos": "PF", "g": 78, "totalFP": 2184.0, "fpPerG": 28.0 },
+        { "player": "Tyler Herro", "team": "MIA", "pos": "SG", "g": 77, "totalFP": 2156.0, "fpPerG": 28.0 },
+        { "player": "Scottie Barnes", "team": "TOR", "pos": "PF", "g": 65, "totalFP": 2145.0, "fpPerG": 33.0 },
+        { "player": "Franz Wagner", "team": "ORL", "pos": "SF", "g": 60, "totalFP": 2100.0, "fpPerG": 35.0 },
+        { "player": "Stephen Curry", "team": "GSW", "pos": "PG", "g": 70, "totalFP": 2093.0, "fpPerG": 29.9 },
+        { "player": "Damian Lillard", "team": "MIL", "pos": "PG", "g": 58, "totalFP": 2088.4, "fpPerG": 36.0 },
+        { "player": "Donovan Mitchell", "team": "CLE", "pos": "SG", "g": 71, "totalFP": 2087.4, "fpPerG": 29.4 },
+        { "player": "Evan Mobley", "team": "CLE", "pos": "PF", "g": 71, "totalFP": 2045.7, "fpPerG": 28.8 },
+        { "player": "Luka Don?i?", "team": "DAL", "pos": "PG", "g": 50, "totalFP": 2040.0, "fpPerG": 40.8 },
+        { "player": "Victor Wembanyama", "team": "SAS", "pos": "C", "g": 46, "totalFP": 2039.6, "fpPerG": 44.3 },
+        { "player": "Austin Reaves", "team": "LAL", "pos": "SG", "g": 73, "totalFP": 2007.4, "fpPerG": 27.5 },
+        { "player": "Dillon Brooks", "team": "HOU", "pos": "SG", "g": 76, "totalFP": 1960.8, "fpPerG": 25.8 },
+        { "player": "DeMar DeRozan", "team": "SAC", "pos": "SF", "g": 77, "totalFP": 1940.4, "fpPerG": 25.2 },
+        { "player": "Jaren Jackson Jr.", "team": "MEM", "pos": "C", "g": 74, "totalFP": 1934.2, "fpPerG": 26.1 },
+        { "player": "Lauri Markkanen", "team": "UTA", "pos": "PF", "g": 47, "totalFP": 1913.7, "fpPerG": 40.7 },
+        { "player": "Ja Morant", "team": "MEM", "pos": "PG", "g": 50, "totalFP": 1905.0, "fpPerG": 38.1 },
+        { "player": "Kyrie Irving", "team": "DAL", "pos": "SG", "g": 50, "totalFP": 1895.0, "fpPerG": 37.9 },
+        { "player": "Jalen Green", "team": "HOU", "pos": "SG", "g": 82, "totalFP": 1890.8, "fpPerG": 23.06 },
+        { "player": "Jalen Johnson", "team": "ATL", "pos": "SF", "g": 36, "totalFP": 1872.0, "fpPerG": 52.0 },
+        { "player": "Wendell Carter Jr.", "team": "ORL", "pos": "C", "g": 62, "totalFP": 1858.8, "fpPerG": 29.98 },
+        { "player": "Jaden Ivey", "team": "DET", "pos": "SG", "g": 30, "totalFP": 1827.0, "fpPerG": 60.9 },
+        { "player": "Jalen Duren", "team": "DET", "pos": "C", "g": 78, "totalFP": 1801.2, "fpPerG": 23.1 },
+        { "player": "Kawhi Leonard", "team": "LAC", "pos": "SF", "g": 37, "totalFP": 1794.6, "fpPerG": 48.5 },
+        { "player": "Jaylen Brown", "team": "BOS", "pos": "SF", "g": 63, "totalFP": 1788.1, "fpPerG": 28.38 },
+        { "player": "CJ McCollum", "team": "NOP", "pos": "PG", "g": 56, "totalFP": 1769.6, "fpPerG": 31.6 },
+        { "player": "Derrick White", "team": "BOS", "pos": "SG", "g": 82, "totalFP": 1754.6, "fpPerG": 21.4 },
+        { "player": "Jordan Poole", "team": "WAS", "pos": "SG", "g": 68, "totalFP": 1727.2, "fpPerG": 25.4 },
+        { "player": "Coby White", "team": "CHI", "pos": "SG", "g": 74, "totalFP": 1720.6, "fpPerG": 23.25 },
+        { "player": "Jimmy Butler", "team": "MIA", "pos": "PF", "g": 55, "totalFP": 1705.0, "fpPerG": 31.0 },
+    ];
+
+    let currentSortKey = 'totalFP';
+    let sortDirection = 'desc';
+
+    function init() {
+        // Sort the initial ALL list by Total FP (Durability) descending
+        playerData.sort((a, b) => b.totalFP - a.totalFP);
+        renderTable(playerData);
+        setupSortHeaders();
+        renderScatterPlot(playerData);
+    }
+
+    function renderTable(data) {
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        data.forEach((player, index) => {
+            const rank = index + 1;
+            const row = tableBody.insertRow();
+            row.classList.add('player-row');
+            row.setAttribute('data-player-name', player.player);
+            row.setAttribute('onclick', 'toggleDrafted(this)');
+            if (localStorage.getItem(player.player) === 'drafted') {
+                row.classList.add('drafted');
+            }
+
+            const totalFPRounded = player.totalFP.toFixed(1);
+            const fpPerGRounded = player.fpPerG.toFixed(1);
+
+            row.innerHTML = `
+                <td>${rank}</td>
+                <td style="text-align: left; font-weight: 600;">${player.player}</td>
+                <td>${player.team}</td>
+                <td>${player.pos}</td>
+                <td>${totalFPRounded}</td>
+                <td>${fpPerGRounded}</td>
+                <td>${player.g}</td>
+            `;
+        });
+    }
+
+    function showPosition(pos) {
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        const targetButton = document.querySelector(`.tab-button[onclick*="'${pos}'"]`);
+        if(targetButton) {
+            targetButton.classList.add('active');
+        }
+
+        let filteredData;
+        if (pos === 'ALL') {
+            filteredData = playerData;
+        } else {
+            filteredData = playerData.filter(p => p.pos === pos);
+        }
+
+        // Preserve current sort when switching tabs, re-sort the filtered data
+        sortData(filteredData, currentSortKey, sortDirection);
+        renderTable(filteredData);
+        renderScatterPlot(filteredData);
+    }
+
+    function toggleDrafted(row) {
+        const playerName = row.getAttribute('data-player-name');
+        
+        if (row.classList.contains('drafted')) {
+            row.classList.remove('drafted');
+            localStorage.removeItem(playerName);
+        } else {
+            row.classList.add('drafted');
+            localStorage.setItem(playerName, 'drafted');
+        }
+        
+        // Re-render to ensure the scatter plot also updates
+        const activeTabElement = document.querySelector('.tab-button.active');
+        const activePos = activeTabElement ? activeTabElement.textContent.split(' ')[0] : 'ALL';
+        showPosition(activePos);
+    }
+    
+    function resetDraftBoard() {
+        if (confirm("Are you sure you want to undraft ALL players? This action cannot be undone.")) {
+            // Clear all draft status data from browser storage
+            playerData.forEach(player => {
+                localStorage.removeItem(player.player);
+            });
+            
+            // Determine active position to re-render the current view
+            const activeTabElement = document.querySelector('.tab-button.active');
+            const activePos = activeTabElement ? activeTabElement.textContent.split(' ')[0] : 'ALL';
+            showPosition(activePos);
+            alert("Draft board reset! All players are now available.");
+        }
+    }
+    window.resetDraftBoard = resetDraftBoard;
+
+    function setupSortHeaders() {
+        document.querySelectorAll('#draftTable th').forEach(header => {
+            header.addEventListener('click', () => {
+                const newSortKey = header.getAttribute('data-sort');
+                if (newSortKey) {
+                    if (currentSortKey === newSortKey) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortKey = newSortKey;
+                        sortDirection = 'desc'; // Default to descending for new sort
+                    }
+                    
+                    const activeTabElement = document.querySelector('.tab-button.active');
+                    const activeTab = activeTabElement ? activeTabElement.textContent.split(' ')[0] : 'ALL';
+
+                    let filteredData;
+                    if (activeTab === 'ALL') {
+                        filteredData = playerData;
+                    } else {
+                        filteredData = playerData.filter(p => p.pos === activeTab);
+                    }
+
+                    sortData(filteredData, currentSortKey, sortDirection);
+                    renderTable(filteredData);
+                    
+                    // Update header text to show sorting arrow
+                    document.querySelectorAll('#draftTable th').forEach(th => th.innerHTML = th.textContent.replace(' ▲', '').replace(' ▼', ''));
+                    const arrow = sortDirection === 'asc' ? ' ▲' : ' ▼';
+                    header.textContent += arrow;
+                }
+            });
+        });
+        // Initial sort indicator
+        document.getElementById('rankHeader').textContent = 'Rank ▼';
+    }
+
+    function sortData(data, key, direction) {
+        data.sort((a, b) => {
+            let valA = a[key];
+            let valB = b[key];
+
+            if (key === 'player' || key === 'team' || key === 'pos') {
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            } else {
+                return direction === 'asc' ? valA - valB : valB - valA;
+            }
+        });
+    }
+
+    function renderScatterPlot(data) {
+        const plot = document.getElementById('scatterPlot');
+        plot.innerHTML = `<div class="axis-label y-label">FP/G (Efficiency)</div><div class="axis-label x-label">Total FP (Durability)</div>`;
+
+        if (data.length === 0) return;
+
+        // Get min/max values for scaling
+        const totalFPs = data.map(p => p.totalFP);
+        const fpPerGs = data.map(p => p.fpPerG);
+
+        const minTotalFP = Math.min(...totalFPs);
+        const maxTotalFP = Math.max(...totalFPs);
+        const minFPPerG = Math.min(...fpPerGs);
+        const maxFPPerG = Math.max(...fpPerGs);
+
+        // Add some padding to the axis ranges
+        const xRange = maxTotalFP - minTotalFP;
+        const yRange = maxFPPerG - minFPPerG;
+
+        const xMin = minTotalFP - xRange * 0.05;
+        const xMax = maxTotalFP + xRange * 0.05;
+        const yMin = minFPPerG - yRange * 0.05;
+        const yMax = maxFPPerG + yRange * 0.05;
+        
+        const plotWidth = plot.clientWidth;
+        const plotHeight = plot.clientHeight;
+        const padding = 30; // Padding for visual space
+
+        data.forEach(player => {
+            // Calculate normalized position (0 to 1)
+            const xNorm = (player.totalFP - xMin) / (xMax - xMin);
+            const yNorm = (player.fpPerG - yMin) / (yMax - yMin);
+
+            // Convert to pixel position within the plot area
+            const xPos = padding + xNorm * (plotWidth - 2 * padding);
+            // Y axis is inverted in CSS (0 is top), so we subtract from height
+            const yPos = plotHeight - (padding + yNorm * (plotHeight - 2 * padding));
+
+            const point = document.createElement('div');
+            point.className = 'plot-point';
+            point.style.left = `${xPos}px`;
+            point.style.top = `${yPos}px`;
+            point.setAttribute('data-player-name', player.player); // Add player name for click handling
+            point.setAttribute('data-tooltip', `${player.player} (${player.pos}): ${player.totalFP.toFixed(1)} Total FP, ${player.fpPerG.toFixed(1)} FP/G`);
+            
+            // Set drafted color for scatter plot points
+            if (localStorage.getItem(player.player) === 'drafted') {
+                point.style.backgroundColor = '#6c757d'; // Dark grey
+                point.style.borderColor = '#495057';    // Darker border
+                point.style.opacity = '0.7';            // Semi-transparent
+            } else {
+                point.style.backgroundColor = '#007bff'; // Original blue color
+                point.style.borderColor = '#0056b3';
+                point.style.opacity = '1.0';
+            }
+
+            point.addEventListener('click', () => {
+                // Find the corresponding table row and toggle draft status
+                const row = document.querySelector(`[data-player-name="${player.player}"]`);
+                if (row) {
+                    toggleDrafted(row);
+                }
+            });
+
+
+            point.addEventListener('mouseenter', (e) => {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = point.getAttribute('data-tooltip');
+                tooltip.style.left = `${e.pageX + 10}px`;
+                tooltip.style.top = `${e.pageY - 25}px`;
+                document.body.appendChild(tooltip);
+                setTimeout(() => tooltip.style.opacity = 1, 10);
+                point.tooltipElement = tooltip;
+            });
+
+            point.addEventListener('mousemove', (e) => {
+                if (point.tooltipElement) {
+                    point.tooltipElement.style.left = `${e.pageX + 10}px`;
+                    point.tooltipElement.style.top = `${e.pageY - 25}px`;
+                }
+            });
+
+            point.addEventListener('mouseleave', () => {
+                if (point.tooltipElement) {
+                    point.tooltipElement.style.opacity = 0;
+                    setTimeout(() => point.tooltipElement.remove(), 200);
+                    point.tooltipElement = null;
+                }
+            });
+
+            plot.appendChild(point);
+        });
+    }
+
+    // Initialize the application
+    init();
+</script>
+
+</body>
+</html>
