@@ -12,10 +12,12 @@
         h2 { margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
         
         /* Controls Styling */
-        .controls { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .controls { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; flex-wrap: wrap; gap: 20px; }
         .controls > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .controls label { font-weight: bold; }
-        .controls select, .controls input { 
+        
+        /* Removed select styling */
+        .controls input { 
             padding: 8px; 
             border-radius: 4px; 
             border: 1px solid #ccc; 
@@ -29,6 +31,48 @@
             font-weight: bold;
             transition: background-color 0.2s, transform 0.1s;
         }
+        
+        /* New Position Button Group Styling */
+        .position-group-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .position-buttons {
+            display: flex;
+            gap: 5px;
+            border-radius: 6px;
+            padding: 2px;
+            background-color: #e9ecef; /* Light background for the group */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .position-buttons button {
+            padding: 6px 10px;
+            border: 1px solid transparent;
+            background-color: transparent;
+            color: #495057;
+            font-weight: 500;
+            transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+            border-radius: 4px;
+            white-space: nowrap; /* Prevent position codes from wrapping */
+        }
+
+        .position-buttons button:hover:not(.active) {
+            background-color: #dee2e6;
+            color: #333;
+        }
+
+        .position-buttons button.active {
+            background-color: #007bff; /* Primary blue for active state */
+            color: white;
+            border-color: #007bff;
+            font-weight: bold;
+            box-shadow: 0 1px 5px rgba(0, 123, 255, 0.3);
+        }
+
+
         .unselect-all-btn {
             background-color: #dc3545; /* Red for destructive action */
             color: white;
@@ -78,19 +122,20 @@
         <h1>2024-2025 NBA Expanded Fantasy Draft Board</h1>
 
         <div class="controls">
-            <div>
-                <label for="position-filter">Filter Position:</label>
-                <select id="position-filter" onchange="renderTable()">
-                    <option value="ALL">ALL (Top 200)</option>
-                    <option value="PG">Point Guard (PG)</option>
-                    <option value="SG">Shooting Guard (SG)</option>
-                    <option value="SF">Small Forward (SF)</option>
-                    <option value="PF">Power Forward (PF)</option>
-                    <option value="C">Center (C)</option>
-                </select>
-                <!-- NEW BUTTON ADDED HERE -->
+            <!-- Position Filter: Replaced Dropdown with Buttons -->
+            <div class="position-group-container">
+                <label>Filter Position:</label>
+                <div id="position-filter-buttons" class="position-buttons">
+                    <button data-pos="ALL" class="active">ALL</button>
+                    <button data-pos="PG">PG</button>
+                    <button data-pos="SG">SG</button>
+                    <button data-pos="SF">SF</button>
+                    <button data-pos="PF">PF</button>
+                    <button data-pos="C">C</button>
+                </div>
                 <button onclick="unselectAllPlayers()" class="unselect-all-btn">Un-select All</button>
             </div>
+            
             <div>
                 <label for="search-input">Search Player:</label>
                 <input type="text" id="search-input" onkeyup="renderTable()" placeholder="E.g., Jokic or LeBron">
@@ -348,252 +393,280 @@
             { "player": "Trey Lyles", "team": "SAC", "pos": "PF", "g": 69.0, "totalFP": 931.5, "fpPerG": 13.50 },
             { "player": "Chet Holmgren", "team": "OKC", "pos": "C", "g": 32.0, "totalFP": 928.0, "fpPerG": 29.00 },
             { "player": "Tristan Da Silva", "team": "ORL", "pos": "SF", "g": 74.0, "totalFP": 917.6, "fpPerG": 12.40 },
-            { "player": "Dalano Banton", "team": "POR", "pos": "PG", "g": 67.0, "totalFP": 911.2, "fpPerG": 13.60 },
-            { "player": "Day'Ron Sharpe", "team": "BRK", "pos": "C", "g": 50.0, "totalFP": 910.0, "fpPerG": 18.20 },
-            { "player": "Trayce Jackson-Davis", "team": "GSW", "pos": "C", "g": 62.0, "totalFP": 905.2, "fpPerG": 14.60 },
-            { "player": "Jalen Suggs", "team": "ORL", "pos": "PG", "g": 35.0, "totalFP": 903.0, "fpPerG": 25.80 },
-            { "player": "J. Cole", "team": "WAS", "pos": "PG", "g": 72.0, "totalFP": 892.8, "fpPerG": 12.40 },
-            { "player": "De'Anthony Melton", "team": "PHI", "pos": "SG", "g": 49.0, "totalFP": 887.3, "fpPerG": 18.10 },
-            { "player": "Isaiah Jackson", "team": "IND", "pos": "C", "g": 77.0, "totalFP": 885.5, "fpPerG": 11.50 },
-            { "player": "Marvin Bagley III", "team": "WAS", "pos": "PF", "g": 41.0, "totalFP": 885.5, "fpPerG": 21.60 },
-            { "player": "Andre Drummond", "team": "CHI", "pos": "C", "g": 66.0, "totalFP": 884.4, "fpPerG": 13.40 },
-            { "player": "D'Jalon Johnson", "team": "WAS", "pos": "SG", "g": 74.0, "totalFP": 880.6, "fpPerG": 11.90 },
-            { "player": "Matisse Thybulle", "team": "POR", "pos": "SF", "g": 64.0, "totalFP": 870.4, "fpPerG": 13.60 },
-            { "player": "Ben Simmons", "team": "BRK", "pos": "PG", "g": 35.0, "totalFP": 864.5, "fpPerG": 24.70 },
-            { "player": "Gabe Vincent", "team": "LAL", "pos": "PG", "g": 66.0, "totalFP": 864.5, "fpPerG": 13.10 },
-            { "player": "Duane Washington Jr.", "team": "PHO", "pos": "PG", "g": 63.0, "totalFP": 863.1, "fpPerG": 13.70 },
-            { "player": "Dennis Smith Jr.", "team": "BRK", "pos": "PG", "g": 50.0, "totalFP": 860.0, "fpPerG": 17.20 },
-            { "player": "Trey Burke", "team": "DAL", "pos": "PG", "g": 70.0, "totalFP": 854.0, "fpPerG": 12.20 },
-            { "player": "Malaki Branham", "team": "SAS", "pos": "SG", "g": 71.0, "totalFP": 852.0, "fpPerG": 12.00 },
-        ].map((p, index) => ({ ...p, rank: index + 1 })); // Add rank
+            { "player": "Dalano Banton", "team": "POR", "pos": "PG", "g": 67.0, "totalFP": 911.2, "fpPerG": 13.60 }
+        ];
 
-        let currentSortKey = 'totalFP';
-        let sortDirection = 'desc';
-        const draftedPlayers = []; // Stores player names that have been drafted
         let fantasyChart = null;
+        let currentSortKey = 'totalFP';
+        let isAscending = false; // Start descending for Total FP
+        let currentFilterPos = 'ALL'; // New state to track active position filter
 
-        // --- Core Logic for Draft Status ---
-
-        function toggleDrafted(playerName, rowElement) {
-            const index = draftedPlayers.indexOf(playerName);
-            if (index > -1) {
-                // Remove player from drafted list
-                draftedPlayers.splice(index, 1);
-                rowElement.classList.remove('drafted');
-            } else {
-                // Add player to drafted list
-                draftedPlayers.push(playerName);
-                rowElement.classList.add('drafted');
+        /**
+         * Maps position codes to distinct Chart.js colors (used for the scatter plot).
+         */
+        function getPosColor(pos) {
+            switch (pos) {
+                case 'PG': return 'rgba(0, 123, 255, 0.8)'; // Blue
+                case 'SG': return 'rgba(40, 167, 69, 0.8)'; // Green
+                case 'SF': return 'rgba(255, 193, 7, 0.8)'; // Yellow/Gold
+                case 'PF': return 'rgba(23, 162, 184, 0.8)'; // Cyan
+                case 'C': return 'rgba(111, 66, 193, 0.8)'; // Purple
+                default: return 'rgba(108, 117, 125, 0.8)'; // Grey/Other
             }
-            renderChart(); // Redraw chart to reflect drafted status
+        }
+
+        /**
+         * Toggles the drafted status of a player and re-renders the table/chart.
+         */
+        function toggleDrafted(index) {
+            const player = playerData[index];
+            player.isDrafted = !player.isDrafted;
+            renderTable();
+            renderChart();
+        }
+
+        /**
+         * Clears the drafted status for all players.
+         */
+        window.unselectAllPlayers = function() {
+            playerData.forEach(p => p.isDrafted = false);
+            renderTable();
+            renderChart();
+        }
+
+        /**
+         * Sets the active position filter based on the button clicked, updates UI, and re-renders.
+         * @param {string} pos - The position code ('ALL', 'PG', 'SG', etc.)
+         */
+        window.filterByPosition = function(pos) {
+            currentFilterPos = pos;
+
+            // Update button styling
+            const buttons = document.querySelectorAll('#position-filter-buttons button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+                if (button.getAttribute('data-pos') === pos) {
+                    button.classList.add('active');
+                }
+            });
+
+            // Re-render the table and chart with the new filter
+            renderTable();
+            renderChart();
         }
         
         /**
-         * Clears all drafted players and re-renders the UI.
+         * Renders the player data table based on current filters and sorting.
          */
-        function unselectAllPlayers() {
-            // Clear the list of drafted players
-            draftedPlayers.length = 0;
-            // Re-render the table and chart to remove the 'drafted' class from all rows
-            renderTable();
-        }
+        window.renderTable = function() {
+            const tableBody = document.querySelector('#draft-table tbody');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const filter = currentFilterPos; // Use global state
 
-        // --- Data Filtering and Sorting ---
-
-        function getFilteredAndSortedData() {
-            const positionFilter = document.getElementById('position-filter').value;
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
-
-            let filteredData = playerData.filter(player => {
-                const posMatch = positionFilter === 'ALL' || player.pos.includes(positionFilter);
-                const searchMatch = player.player.toLowerCase().includes(searchTerm) || 
-                                    player.team.toLowerCase().includes(searchTerm);
-                return posMatch && searchMatch;
+            // 1. Filter Data
+            const filteredData = playerData.filter(player => {
+                const matchesPosition = filter === 'ALL' || player.pos.includes(filter);
+                const matchesSearch = player.player.toLowerCase().includes(search);
+                return matchesPosition && matchesSearch;
             });
 
-            // Sorting logic
-            filteredData.sort((a, b) => {
+            // 2. Sort Data
+            const sortedData = filteredData.sort((a, b) => {
                 const aVal = a[currentSortKey];
                 const bVal = b[currentSortKey];
 
                 let comparison = 0;
-                if (typeof aVal === 'string') {
-                    comparison = aVal.localeCompare(bVal);
-                } else {
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
                     comparison = aVal - bVal;
+                } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+                    comparison = aVal.localeCompare(bVal);
                 }
 
-                return sortDirection === 'asc' ? comparison : comparison * -1;
+                // If ascending, return comparison; if descending, return negative comparison
+                return isAscending ? comparison : -comparison;
             });
 
-            return filteredData;
-        }
-
-        // --- UI Rendering ---
-
-        function renderTable() {
-            const data = getFilteredAndSortedData();
-            const tableBody = document.querySelector('#draft-table tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
-
-            // Update arrow indicator in the header
-            document.querySelectorAll('#draft-table th').forEach(th => {
-                const key = th.getAttribute('data-sort-key');
-                if (key === currentSortKey) {
-                    // This is a minimal update based on the original structure.
-                    const arrowSpan = document.getElementById(key + '-arrow') || th.querySelector('span');
-                    if (arrowSpan) {
-                         arrowSpan.innerHTML = sortDirection === 'asc' ? '&#x25B2;' : '&#x25BC;'; // Up or Down Triangle
-                    } else if (key === 'totalFP') {
-                        // Special case for totalFP which had a static arrow in the original HTML
-                        document.getElementById('totalFP-arrow').innerHTML = sortDirection === 'asc' ? '&#x25B2;' : '&#x25BC;';
-                    }
-                }
-            });
-
-            data.forEach(player => {
-                const row = tableBody.insertRow();
+            // 3. Render Table
+            tableBody.innerHTML = '';
+            sortedData.forEach((player, index) => {
+                // Determine the original index in the full playerData array
+                const originalIndex = playerData.findIndex(p => p.player === player.player);
                 
-                // Add drafted class if applicable
-                if (draftedPlayers.includes(player.player)) {
+                const row = tableBody.insertRow();
+                row.onclick = () => toggleDrafted(originalIndex);
+                
+                if (player.isDrafted) {
                     row.classList.add('drafted');
                 }
 
-                // Add click handler to toggle drafted status
-                row.onclick = () => toggleDrafted(player.player, row);
-
-                // Populate cells
-                row.insertCell().textContent = player.rank;
-                row.insertCell().textContent = player.player;
-                row.insertCell().textContent = player.team;
-                
-                const posCell = row.insertCell();
-                posCell.textContent = player.pos;
-                posCell.classList.add(player.pos); // Apply color class
-
-                row.insertCell().textContent = player.totalFP.toFixed(1);
-                row.insertCell().textContent = player.fpPerG.toFixed(2);
-                row.insertCell().textContent = player.g.toFixed(1);
+                row.innerHTML = `
+                    <td>${player.rank}</td>
+                    <td>${player.player}</td>
+                    <td>${player.team}</td>
+                    <td class="${player.pos}">${player.pos}</td>
+                    <td>${player.totalFP.toFixed(1)}</td>
+                    <td>${player.fpPerG.toFixed(2)}</td>
+                    <td>${player.g.toFixed(1)}</td>
+                `;
             });
-            renderChart();
-        }
 
-        function setupSorting() {
-            document.querySelectorAll('#draft-table th[data-sort-key]').forEach(header => {
-                // Ensure there is an arrow span for all sortable columns for dynamic change
-                const key = header.getAttribute('data-sort-key');
-                if (!document.getElementById(key + '-arrow') && key !== 'totalFP') {
-                    header.innerHTML += `<span id="${key}-arrow"></span>`;
+            // Update sort arrows
+            document.querySelectorAll('#draft-table th').forEach(th => {
+                const key = th.getAttribute('data-sort-key');
+                const arrowSpan = th.querySelector('span');
+                if (arrowSpan) {
+                    arrowSpan.remove();
                 }
-
-                header.addEventListener('click', function() {
-                    const key = this.getAttribute('data-sort-key');
-                    if (currentSortKey === key) {
-                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        currentSortKey = key;
-                        sortDirection = 'desc'; // Default to descending for new sort
-                    }
-                    renderTable();
-                });
+                
+                if (key === currentSortKey) {
+                    const arrow = document.createElement('span');
+                    arrow.innerHTML = isAscending ? '&#x25B2;' : '&#x25BC;';
+                    th.appendChild(arrow);
+                }
             });
-            // Initial render
-            renderTable(); 
         }
+        
+        /**
+         * Renders the scatter plot using Chart.js based on current filters.
+         */
+        window.renderChart = function() {
+            const chartData = playerData.filter(player => {
+                const matchesPosition = currentFilterPos === 'ALL' || player.pos.includes(currentFilterPos);
+                return matchesPosition && !player.isDrafted; // Only show non-drafted players in the chart
+            });
 
-        function renderChart() {
-            const allData = getFilteredAndSortedData();
-            const draftedData = allData.filter(p => draftedPlayers.includes(p.player));
-            const availableData = allData.filter(p => !draftedPlayers.includes(p.player));
+            const datasets = [];
+            const positions = ['PG', 'SG', 'SF', 'PF', 'C'];
+            
+            // Group data by position for Chart.js
+            positions.forEach(pos => {
+                const posData = chartData
+                    .filter(p => p.pos.includes(pos))
+                    .map(p => ({
+                        x: p.fpPerG,
+                        y: p.totalFP,
+                        player: p.player,
+                        pos: p.pos
+                    }));
 
-            const ctx = document.getElementById('fantasy-chart').getContext('2d');
-            
-            // Destroy existing chart instance if it exists
-            if (fantasyChart) {
-                fantasyChart.destroy();
-            }
-            
-            fantasyChart = new Chart(ctx, {
+                if (posData.length > 0) {
+                    datasets.push({
+                        label: pos,
+                        data: posData,
+                        backgroundColor: getPosColor(pos),
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pos: pos
+                    });
+                }
+            });
+
+            const config = {
                 type: 'scatter',
-                data: {
-                    datasets: [
-                        {
-                            label: 'Available Players',
-                            data: availableData.map(p => ({ x: p.fpPerG, y: p.totalFP, player: p.player, pos: p.pos, rank: p.rank })),
-                            backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                        },
-                        {
-                            label: 'Drafted Players',
-                            data: draftedData.map(p => ({ x: p.fpPerG, y: p.totalFP, player: p.player, pos: p.pos, rank: p.rank })),
-                            backgroundColor: 'rgba(220, 53, 69, 1)',
-                            pointRadius: 6,
-                            pointHoverRadius: 8,
-                        }
-                    ]
-                },
+                data: { datasets: datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            type: 'linear',
-                            position: 'bottom',
                             title: {
                                 display: true,
                                 text: 'Fantasy Points Per Game (FP/G)',
-                                font: { size: 14, weight: 'bold' }
+                                font: { size: 16, weight: 'bold' }
                             },
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Total Fantasy Points (Total FP)',
-                                font: { size: 14, weight: 'bold' }
+                                font: { size: 16, weight: 'bold' }
                             },
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
                         }
                     },
                     plugins: {
+                        legend: { position: 'top' },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const dataPoint = context.raw;
-                                    return `Rank ${dataPoint.rank}: ${dataPoint.player} (${dataPoint.pos})`;
-                                },
-                                afterLabel: function(context) {
-                                    const dataPoint = context.raw;
+                                    const point = context.raw;
                                     return [
-                                        `Total FP: ${dataPoint.y.toFixed(1)}`,
-                                        `FP/G: ${dataPoint.x.toFixed(2)}`
+                                        `${point.player} (${point.pos})`,
+                                        `FP/G: ${point.x.toFixed(2)}`,
+                                        `Total FP: ${point.y.toFixed(1)}`
                                     ];
                                 }
-                            }
-                        },
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true
-                            }
+                            },
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 14 }
                         }
                     }
                 }
+            };
+
+            const ctx = document.getElementById('fantasy-chart').getContext('2d');
+
+            if (fantasyChart) {
+                fantasyChart.data = config.data;
+                fantasyChart.options = config.options;
+                fantasyChart.update();
+            } else {
+                fantasyChart = new Chart(ctx, config);
+            }
+        }
+
+        /**
+         * Sets up event listeners for table header sorting.
+         */
+        function setupTableSorting() {
+            document.querySelectorAll('#draft-table th').forEach(header => {
+                header.addEventListener('click', () => {
+                    const newSortKey = header.getAttribute('data-sort-key');
+                    if (!newSortKey) return;
+
+                    if (newSortKey === currentSortKey) {
+                        isAscending = !isAscending;
+                    } else {
+                        currentSortKey = newSortKey;
+                        // Default sort order: ascending for rank/player, descending for stats
+                        isAscending = (newSortKey === 'rank' || newSortKey === 'player' || newSortKey === 'team' || newSortKey === 'pos');
+                    }
+                    renderTable();
+                });
             });
         }
 
-        // Initialize on load
-        window.onload = function() {
-            // Set initial sort arrow based on default settings
-            document.getElementById('totalFP-arrow').innerHTML = sortDirection === 'asc' ? '&#x25B2;' : '&#x25BC;';
-            
-            // Trigger setup and initial render
-            setupSorting();
-        };
 
-        // Expose the unselectAllPlayers function globally so the button can call it
-        window.unselectAllPlayers = unselectAllPlayers;
+        // Initialize the App
+        document.addEventListener('DOMContentLoaded', () => {
+            // Assign ranks to player data
+            playerData.forEach((p, i) => p.rank = i + 1);
+
+            // Set up position filter buttons
+            const positionButtonsContainer = document.getElementById('position-filter-buttons');
+            if (positionButtonsContainer) {
+                positionButtonsContainer.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const pos = button.getAttribute('data-pos');
+                        filterByPosition(pos);
+                    });
+                });
+            }
+            
+            // Set up initial sorting (Total FP descending)
+            isAscending = false;
+            currentSortKey = 'totalFP';
+
+            setupTableSorting();
+
+            // Initial rendering
+            renderTable();
+            renderChart();
+        });
 
     </script>
 </body>
