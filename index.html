@@ -122,6 +122,7 @@ tr.mine-row td { background: var(--hot-soft); opacity: 1; }
 .tag.gone { background: var(--hot-soft); color: var(--hot); border-color: var(--hot); }
 .tag.back { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .hide-stats .stat { display: none; }
+.pickbtns { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
 
 .ba-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .ba-row:last-child { border-bottom: 0; }
@@ -201,6 +202,7 @@ code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surfa
             <label class="check"><input type="checkbox" id="showStats"> Show stat columns</label>
             <button class="btn ghost small" data-action="undo" id="undoBtn">Undo last pick</button>
           </div>
+          <p class="muted" style="font-size:13px;margin:0 0 10px">Press <b>Draft</b> when you draft a player and it joins your team. Press <b>Taken</b> when another team picks a player. Either way the player leaves the board, the next best available moves up, and the clock moves on. Log picks in the same order as Sleeper.</p>
           <div class="tablewrap" id="tableWrap">
             <table id="boardTable">
               <thead>
@@ -644,6 +646,13 @@ function makeSample() {
     return rows;
   }
 
+  function pickBtn(id) {
+    if (draftDone()) return '';
+    const mine = slotOnClock(nowPick(), state.settings.teams) === state.settings.slot;
+    return '<span class="pickbtns"><button class="btn small' + (mine ? ' hot' : ' ghost') + '" data-action="draft" data-by="me" data-id="' + id + '">Draft</button>' +
+      '<button class="btn small' + (mine ? ' ghost' : '') + '" data-action="draft" data-by="other" data-id="' + id + '">Taken</button></span>';
+  }
+
   function renderBoard() {
     const rows = sortedRows(), w = wheelInfo(), t = takenSet(), mineIds = new Set(state.picks.filter(x => x.by === 'me').map(x => x.id));
     const shown = rows.slice(0, 250);
@@ -658,7 +667,7 @@ function makeSample() {
         '<td class="r num">' + Math.round(p.ddr * 100) + '%' + (p.est ? '*' : '') + '</td>' +
         '<td class="r num">' + (p.adp != null ? p.adp : '-') + '</td>' +
         '<td>' + (drafted ? '<span class="tag">' + (mineIds.has(p.id) ? 'Yours' : 'Taken') + '</span>' : tagFor(p, w)) + '</td>' +
-        '<td>' + (drafted || draftDone() ? '' : '<button class="btn small' + (w && w.onClock ? ' hot' : '') + '" data-action="draft" data-id="' + p.id + '">Draft</button>') + '</td></tr>';
+        '<td>' + (drafted ? '' : pickBtn(p.id)) + '</td></tr>';
     }).join('');
     document.querySelectorAll('#boardTable thead th[data-sort]').forEach(th => {
       th.classList.toggle('sorted', th.dataset.sort === ui.sort);
@@ -674,7 +683,7 @@ function makeSample() {
     const rem = state.players.filter(p => !t.has(p.id)).sort((a, b) => b.value - a.value);
     $('bestList').innerHTML = rem.slice(0, 8).map(p =>
       '<div class="ba-row"><div><span class="pname">' + esc(p.name) + '</span> ' + p.elig.map(x => '<span class="pos">' + x + '</span>').join('') + '</div>' +
-      '<div class="act">' + (draftDone() ? '' : '<button class="btn small" data-action="draft" data-id="' + p.id + '">Draft</button>') + '</div>' +
+      '<div class="act">' + pickBtn(p.id) + '</div>' +
       '<div class="sub">' + f1(p.fp) + ' FP/G, VORP ' + f1(p.vorp) + ' ' + tagFor(p, w) + '</div></div>').join('') || '<p class="muted">No players left.</p>';
     $('supply').innerHTML = POS.map(pos => {
       const c = rem.filter(p => p.elig.includes(pos) && p.fp > repl[pos]).length;
@@ -684,7 +693,7 @@ function makeSample() {
     $('pickLog').innerHTML = state.picks.length ? state.picks.slice(-8).reverse().map((x, i) => {
       const n = state.picks.length - i, p = id[x.id];
       return '<div class="ba-row" style="grid-template-columns:minmax(0,1fr)"><div><span class="mono muted">#' + n + '</span> <span class="pname">' + esc(p ? p.name : x.id) + '</span> ' + (x.by === 'me' ? '<span class="tag gone">You</span>' : '<span class="tag">Slot ' + slotOnClock(n, state.settings.teams) + '</span>') + '</div></div>';
-    }).join('') : '<p class="muted">No picks logged yet. Press Draft beside a player as each pick is made in Sleeper.</p>';
+    }).join('') : '<p class="muted">No picks logged yet. As each pick is made in Sleeper, press Draft (yours) or Taken (another team) beside that player.</p>';
   }
 
   function slotHTML(s) {
@@ -746,10 +755,10 @@ function makeSample() {
   function refresh() { recompute(); renderAll(); save(); }
 
   /* ---------- actions ---------- */
-  function draft(id) {
+  function draft(id, by) {
     if (draftDone() || takenSet().has(id)) return;
     const n = nowPick();
-    state.picks.push({ id, by: slotOnClock(n, state.settings.teams) === state.settings.slot ? 'me' : 'other' });
+    state.picks.push({ id, by: by || (slotOnClock(n, state.settings.teams) === state.settings.slot ? 'me' : 'other') });
     refresh();
   }
   function setLoaded(players, sample, msg, cls) {
@@ -776,7 +785,7 @@ function makeSample() {
     const a = b.dataset.action;
     if (a !== 'resetdraft' && ui.resetArmed) { ui.resetArmed = false; $('resetDraftBtn').textContent = 'Clear draft'; }
     if (a === 'tab') { state.tab = b.dataset.tab; renderTabs(); save(); }
-    else if (a === 'draft') draft(b.dataset.id);
+    else if (a === 'draft') draft(b.dataset.id, b.dataset.by);
     else if (a === 'undo') { state.picks.pop(); refresh(); }
     else if (a === 'pos') { ui.pos = b.dataset.pos; renderChips(); renderBoard(); }
     else if (a === 'loadcsv') loadCSVText($('csvIn').value);
