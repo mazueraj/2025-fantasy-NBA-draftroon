@@ -124,6 +124,7 @@ tr.mine-row td { background: var(--hot-soft); opacity: 1; }
 .hide-stats .stat { display: none; }
 .pickbtns { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
 
+#bestList { max-height: 72vh; overflow-y: auto; padding-right: 4px; }
 .ba-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .ba-row:last-child { border-bottom: 0; }
 .ba-row .sub { grid-column: 1 / 2; font-size: 12px; color: var(--muted); }
@@ -234,7 +235,7 @@ code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surfa
 
         <aside class="rail">
           <div class="card">
-            <h3>Best available</h3>
+            <h3>Best available, top 50</h3>
             <div id="bestList"></div>
           </div>
           <div class="card">
@@ -681,7 +682,7 @@ function makeSample() {
   function renderRail() {
     const w = wheelInfo(), t = takenSet();
     const rem = state.players.filter(p => !t.has(p.id)).sort((a, b) => b.value - a.value);
-    $('bestList').innerHTML = rem.slice(0, 8).map(p =>
+    $('bestList').innerHTML = rem.slice(0, 50).map(p =>
       '<div class="ba-row"><div><span class="pname">' + esc(p.name) + '</span> ' + p.elig.map(x => '<span class="pos">' + x + '</span>').join('') + '</div>' +
       '<div class="act">' + pickBtn(p.id) + '</div>' +
       '<div class="sub">' + f1(p.fp) + ' FP/G, VORP ' + f1(p.vorp) + ' ' + tagFor(p, w) + '</div></div>').join('') || '<p class="muted">No players left.</p>';
