@@ -205,6 +205,7 @@ code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surfa
             <label class="check"><input type="checkbox" id="hideDrafted" checked> Hide drafted</label>
             <label class="check"><input type="checkbox" id="showStats"> Show stat columns</label>
             <button class="btn ghost small" data-action="undo" id="undoBtn">Undo last pick</button>
+            <button class="btn small" data-action="resetdone" id="resetDoneBtn">Reset draft</button>
           </div>
           <p class="muted" style="font-size:13px;margin:0 0 10px">Press <b>Draft</b> when you draft a player and it joins your team. Press <b>Taken</b> when another team picks a player. Either way the player leaves the board, the next best available moves up, and the clock moves on. Log picks in the same order as Sleeper.</p>
           <div class="tablewrap" id="tableWrap">
@@ -570,7 +571,7 @@ function makeSample() {
 (function () {
   const KEY = 'slot10-draft-board-v1';
   let state = { settings: JSON.parse(JSON.stringify(DEFAULTS)), players: [], picks: [], dismissed: [], sample: true, tab: 'board' };
-  const ui = { sort: 'vrank', dir: 1, pos: 'ALL', hide: true, stats: false, resetArmed: false };
+  const ui = { sort: 'vrank', dir: 1, pos: 'ALL', hide: true, stats: false, resetArmed: false, doneArmed: false };
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const f1 = v => (Number.isFinite(v) ? v.toFixed(1) : '0.0');
@@ -789,6 +790,7 @@ function makeSample() {
   function renderAll() {
     renderTabs(); renderClock(); renderChips(); renderBoard(); renderTargets(); renderRail(); renderRoster(); renderMap();
     $('sampleBanner').hidden = !state.sample;
+    $('resetDoneBtn').textContent = ui.doneArmed ? 'Click again to reset' : 'Reset draft';
     $('resetDraftBtn').textContent = ui.resetArmed ? 'Click again to clear every pick' : 'Clear draft';
   }
   function refresh() { recompute(); renderAll(); save(); }
@@ -822,6 +824,7 @@ function makeSample() {
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-action]'); if (!b) return;
     const a = b.dataset.action;
+    if (a !== 'resetdone' && ui.doneArmed) { ui.doneArmed = false; $('resetDoneBtn').textContent = 'Reset draft'; }
     if (a !== 'resetdraft' && ui.resetArmed) { ui.resetArmed = false; $('resetDraftBtn').textContent = 'Clear draft'; }
     if (a === 'tab') { state.tab = b.dataset.tab; renderTabs(); save(); }
     else if (a === 'draft') draft(b.dataset.id, b.dataset.by);
@@ -836,6 +839,10 @@ function makeSample() {
       const ok = () => { $('exportMsg').textContent = 'Copied.'; $('exportMsg').className = 'msg ok'; };
       const fb = () => { ta.focus(); ta.select(); $('exportMsg').textContent = 'Press Ctrl+C (or Cmd+C) to copy the selected text.'; $('exportMsg').className = 'msg'; };
       try { navigator.clipboard.writeText(ta.value).then(ok, fb); } catch (err) { fb(); }
+    }
+    else if (a === 'resetdone') {
+      if (!ui.doneArmed) { ui.doneArmed = true; b.textContent = 'Click again to reset'; return; }
+      ui.doneArmed = false; state.picks = []; state.dismissed = []; ui.pos = 'ALL'; $('search').value = ''; state.tab = 'board'; refresh();
     }
     else if (a === 'resetdraft') {
       if (!ui.resetArmed) { ui.resetArmed = true; b.textContent = 'Click again to clear every pick'; return; }
