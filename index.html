@@ -124,6 +124,10 @@ tr.mine-row td { background: var(--hot-soft); opacity: 1; }
 .hide-stats .stat { display: none; }
 .pickbtns { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
 
+#targetList { max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.tgt-h { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: .03em; margin: 10px 0 2px; display: flex; justify-content: space-between; }
+.tgt-h:first-child { margin-top: 0; }
+.tgt-p { font-family: var(--font-mono); color: var(--muted); font-size: 12px; margin-right: 6px; }
 #bestList { max-height: 72vh; overflow-y: auto; padding-right: 4px; }
 .ba-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .ba-row:last-child { border-bottom: 0; }
@@ -166,8 +170,7 @@ code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surfa
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
-</head>
-<body>
+
 <div class="app">
   <header class="top">
     <div class="brand">
@@ -234,6 +237,11 @@ code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surfa
         </div>
 
         <aside class="rail">
+          <div class="card">
+            <h3>Key targets</h3>
+            <p class="muted" style="font-size:12px;margin:4px 0 8px">Prioritised by pick window. A player leaves this list once marked Draft or Taken.</p>
+            <div id="targetList"></div>
+          </div>
           <div class="card">
             <h3>Best available, top 50</h3>
             <div id="bestList"></div>
@@ -561,13 +569,13 @@ function makeSample() {
 <script>
 (function () {
   const KEY = 'slot10-draft-board-v1';
-  let state = { settings: JSON.parse(JSON.stringify(DEFAULTS)), players: [], picks: [], sample: true, tab: 'board' };
+  let state = { settings: JSON.parse(JSON.stringify(DEFAULTS)), players: [], picks: [], dismissed: [], sample: true, tab: 'board' };
   const ui = { sort: 'vrank', dir: 1, pos: 'ALL', hide: true, stats: false, resetArmed: false };
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const f1 = v => (Number.isFinite(v) ? v.toFixed(1) : '0.0');
 
-  function save() { try { localStorage.setItem(KEY, JSON.stringify({ settings: state.settings, picks: state.picks, sample: state.sample, tab: state.tab, players: state.players.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, gp: p.gp, pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, tov: p.tov, tpm: p.tpm, ddRate: p.ddRate, tdRate: p.tdRate, adp: p.adp })) })); } catch (e) { } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ settings: state.settings, picks: state.picks, dismissed: state.dismissed, sample: state.sample, tab: state.tab, players: state.players.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, gp: p.gp, pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, tov: p.tov, tpm: p.tpm, ddRate: p.ddRate, tdRate: p.tdRate, adp: p.adp })) })); } catch (e) { } }
   function load() {
     try {
       const raw = localStorage.getItem(KEY); if (!raw) return false;
@@ -576,7 +584,7 @@ function makeSample() {
         state.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), d.settings);
         state.settings.scoring = Object.assign({}, DEFAULTS.scoring, d.settings.scoring);
         state.settings.roster = Object.assign({}, DEFAULTS.roster, d.settings.roster);
-        state.players = d.players; state.picks = Array.isArray(d.picks) ? d.picks : []; state.sample = !!d.sample; state.tab = d.tab || 'board';
+        state.players = d.players; state.picks = Array.isArray(d.picks) ? d.picks : []; state.dismissed = Array.isArray(d.dismissed) ? d.dismissed : []; state.sample = !!d.sample; state.tab = d.tab || 'board';
         return true;
       }
     } catch (e) { }
@@ -679,6 +687,36 @@ function makeSample() {
     $('undoBtn').disabled = !state.picks.length;
   }
 
+  const TARGETS = [
+    ['Picks 1 to 9', [['Nikola Jokić', ''], ['Victor Wembanyama', ''], ['Luka Dončić', 'High three-point volume'], ['Shai Gilgeous-Alexander', ''], ['Giannis Antetokounmpo', 'Moved to MIA, 36 GP'], ['Cade Cunningham', ''], ['Anthony Edwards', 'Priced above points value'], ['Jayson Tatum', 'Only 16 GP last season'], ['Jalen Johnson', 'Likely gone by pick 10']]],
+    ['Picks 10 and 11', [['Tyrese Maxey', 'Usage down with Edgecombe'], ['Donovan Mitchell', ''], ['Scottie Barnes', 'Most GP, wide eligibility'], ['Cooper Flagg', 'Lowest FP/G of the group'], ['Karl-Anthony Towns', 'Fills centre'], ['Alperen Şengün', 'Fills centre'], ['Tyrese Haliburton', 'Day to day, no 2025-26 data']]],
+    ['Picks 30 and 31', [['Bam Adebayo', 'Centre, may be gone'], ['Kawhi Leonard', 'Games risk'], ['Jaylen Brown', 'Moved to PHI'], ['Evan Mobley', 'Centre eligible'], ['James Harden', 'Age'], ['Jamal Murray', 'May be gone'], ['Jalen Duren', 'Pure centre'], ['Anthony Davis', 'Highest ceiling, severe games risk'], ['Deni Avdija', 'Mild reach']]],
+    ['Picks 50 and 51', [['Paolo Banchero', 'Value over ADP'], ['LeBron James', 'Age'], ['Chet Holmgren', 'Centre eligible'], ['Trey Murphy III', 'Three-point volume'], ['Michael Porter Jr.', 'Day to day'], ['Lauri Markkanen', 'Low games'], ['Donovan Clingan', 'Pure centre, durable'], ['Derrick White', 'Safe floor'], ['Joel Embiid', 'Availability concern'], ['Stephon Castle', 'Lower ceiling']]],
+    ['Picks 70 and 71', [['Julius Randle', 'May be gone'], ['Dyson Daniels', 'May be gone'], ['Rudy Gobert', 'Centre, no threes'], ['Alex Sarr', 'Low games'], ['Onyeka Okongwu', 'Centre option'], ['VJ Edgecombe', 'Takes usage from Maxey'], ["De'Aaron Fox", ''], ['Ivica Zubac', 'Low games'], ['Jarrett Allen', 'Low games']]],
+    ['Picks 90 and 91', [['Brandon Ingram', 'Moved to TOR'], ['Ryan Rollins', ''], ['Immanuel Quickley', ''], ['Josh Hart', ''], ["Kel'el Ware", 'Centre fallback'], ['Zach Edey', 'Stash only, 11 GP'], ['Payton Pritchard', 'Lowest ceiling']]],
+    ['Picks 110 and 111', [['Isaiah Hartenstein', 'Low games'], ['RJ Barrett', 'Low games'], ['Andrew Wiggins', ''], ['CJ McCollum', 'Moved to ATL'], ['Myles Turner', 'Centre fallback'], ['Brandin Podziemski', '']]],
+    ['Picks 130 and 131', [['Nikola Vučević', 'Age, centre'], ['Andrew Nembhard', ''], ['Jalen Suggs', 'Low games'], ['Jaime Jaquez Jr.', ''], ['Dillon Brooks', 'Low games']]]
+  ];
+  const nk = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+(jr|sr|ii|iii|iv)$/, '').replace(/\s+/g, ' ').trim();
+
+  function renderTargets() {
+    const t = takenSet(), byName = {}; state.players.forEach(p => { byName[nk(p.name)] = p; });
+    const seen = new Set(), gone = new Set(state.dismissed);
+    const html = TARGETS.map(g => {
+      const rows = []; let i = 0;
+      g[1].forEach(x => {
+        const key = nk(x[0]); if (seen.has(key)) return; seen.add(key);
+        const p = byName[key]; i++;
+        if (p ? t.has(p.id) : gone.has(key)) return;
+        rows.push('<div class="ba-row"><div><span class="tgt-p">P' + i + '</span><span class="pname">' + esc(p ? p.name : x[0]) + '</span> ' + (p ? p.elig.map(e => '<span class="pos">' + e + '</span>').join('') : '') + '</div>' +
+          '<div class="act">' + (p ? pickBtn(p.id) : '<button class="btn small ghost" data-action="dismiss" data-key="' + esc(key) + '">Remove</button>') + '</div>' +
+          '<div class="sub">' + (p ? f1(p.fp) + ' FP/G, ADP ' + (p.adp != null ? p.adp : '-') : 'Not in loaded data') + (x[1] ? ' &middot; ' + esc(x[1]) : '') + '</div></div>');
+      });
+      return rows.length ? '<div class="tgt-h"><span>' + g[0] + '</span><span class="muted mono" style="font-size:12px">' + rows.length + ' left</span></div>' + rows.join('') : '';
+    }).join('');
+    $('targetList').innerHTML = html || '<p class="muted">Every listed target has been marked.</p>';
+  }
+
   function renderRail() {
     const w = wheelInfo(), t = takenSet();
     const rem = state.players.filter(p => !t.has(p.id)).sort((a, b) => b.value - a.value);
@@ -749,7 +787,7 @@ function makeSample() {
     ['board', 'roster', 'map', 'settings', 'data'].forEach(t => { $('tab-' + t).hidden = t !== state.tab; });
   }
   function renderAll() {
-    renderTabs(); renderClock(); renderChips(); renderBoard(); renderRail(); renderRoster(); renderMap();
+    renderTabs(); renderClock(); renderChips(); renderBoard(); renderTargets(); renderRail(); renderRoster(); renderMap();
     $('sampleBanner').hidden = !state.sample;
     $('resetDraftBtn').textContent = ui.resetArmed ? 'Click again to clear every pick' : 'Clear draft';
   }
@@ -787,6 +825,7 @@ function makeSample() {
     if (a !== 'resetdraft' && ui.resetArmed) { ui.resetArmed = false; $('resetDraftBtn').textContent = 'Clear draft'; }
     if (a === 'tab') { state.tab = b.dataset.tab; renderTabs(); save(); }
     else if (a === 'draft') draft(b.dataset.id, b.dataset.by);
+    else if (a === 'dismiss') { state.dismissed.push(b.dataset.key); refresh(); }
     else if (a === 'undo') { state.picks.pop(); refresh(); }
     else if (a === 'pos') { ui.pos = b.dataset.pos; renderChips(); renderBoard(); }
     else if (a === 'loadcsv') loadCSVText($('csvIn').value);
@@ -800,7 +839,7 @@ function makeSample() {
     }
     else if (a === 'resetdraft') {
       if (!ui.resetArmed) { ui.resetArmed = true; b.textContent = 'Click again to clear every pick'; return; }
-      ui.resetArmed = false; state.picks = []; refresh();
+      ui.resetArmed = false; state.picks = []; state.dismissed = []; refresh();
     }
     else if (a === 'resetsettings') {
       state.settings = JSON.parse(JSON.stringify(DEFAULTS)); renderSettings(); refresh();
@@ -846,5 +885,3 @@ function makeSample() {
   renderSettings(); recompute(); renderAll();
 })();
 </script>
-</body>
-</html>
