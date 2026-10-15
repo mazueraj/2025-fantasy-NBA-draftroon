@@ -1,673 +1,840 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> NBA Fantasy Draft Board</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <style>
-        body { font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
-        .container { max-width: 1400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; margin-bottom: 20px; }
-        h2 { margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-        
-        /* Controls Styling */
-        .controls { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; flex-wrap: wrap; gap: 20px; }
-        .controls > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .controls label { font-weight: bold; }
-        
-        /* Removed select styling */
-        .controls input { 
-            padding: 8px; 
-            border-radius: 4px; 
-            border: 1px solid #ccc; 
-            min-width: 150px;
-        }
-        .controls button {
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        
-        /* New Position Button Group Styling */
-        .position-group-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .position-buttons {
-            display: flex;
-            gap: 5px;
-            border-radius: 6px;
-            padding: 2px;
-            background-color: #e9ecef; /* Light background for the group */
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root { color-scheme: light; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Slot 10 Draft Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: scoreboard strip on top, tabbed workspace below; the board has a sticky-header table beside a "best available" rail. */
+:root {
+  --bg: #EDEFEA;
+  --surface: #FFFFFF;
+  --surface2: #F4F6F1;
+  --ink: #15201B;
+  --muted: #5A6760;
+  --line: #D6DBD2;
+  --accent: #0D6A4B;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #D9EEE4;
+  --hot: #B9540F;
+  --hot-ink: #FFFFFF;
+  --hot-soft: #FAE5D3;
+  --good: #1A7A47;
+  --bad: #B3261E;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1310; --surface: #141D19; --surface2: #1A2621; --ink: #E6EEE8; --muted: #92A39A;
+    --line: #2A372F; --accent: #44C494; --accent-ink: #06130D; --accent-soft: #163428;
+    --hot: #F39445; --hot-ink: #1B0D02; --hot-soft: #3A2412; --good: #4FD18A; --bad: #FF8A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1310; --surface: #141D19; --surface2: #1A2621; --ink: #E6EEE8; --muted: #92A39A;
+  --line: #2A372F; --accent: #44C494; --accent-ink: #06130D; --accent-soft: #163428;
+  --hot: #F39445; --hot-ink: #1B0D02; --hot-soft: #3A2412; --good: #4FD18A; --bad: #FF8A80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+h1 { font-size: 30px; line-height: 1; }
+h2 { font-size: 22px; }
+h3 { font-size: 17px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-        .position-buttons button {
-            padding: 6px 10px;
-            border: 1px solid transparent;
-            background-color: transparent;
-            color: #495057;
-            font-weight: 500;
-            transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-            border-radius: 4px;
-            white-space: nowrap; /* Prevent position codes from wrapping */
-        }
+.top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; align-items: stretch; }
+.brand { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+.brand p { color: var(--muted); }
+.clock {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-width: 0;
+}
+.clock.mine { background: var(--hot); border-color: var(--hot); color: var(--hot-ink); }
+.clock.mine .lbl { color: inherit; opacity: .85; }
+.clock .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.clock .big { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.05; }
+.clock .sub { font-size: 13px; }
 
-        .position-buttons button:hover:not(.active) {
-            background-color: #dee2e6;
-            color: #333;
-        }
+.banner { background: var(--hot-soft); border: 1px solid var(--hot); border-radius: 10px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 
-        .position-buttons button.active {
-            background-color: #007bff; /* Primary blue for active state */
-            color: white;
-            border-color: #007bff;
-            font-weight: bold;
-            box-shadow: 0 1px 5px rgba(0, 123, 255, 0.3);
-        }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .03em; color: var(--muted); white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
-        .unselect-all-btn {
-            background-color: #dc3545; /* Red for destructive action */
-            color: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .unselect-all-btn:hover {
-            background-color: #c82333;
-            transform: translateY(-1px);
-        }
+.board-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-bottom: 10px; }
+.controls input[type="search"] { flex: 1 1 200px; min-width: 0; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { background: var(--surface2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
 
-        /* Table Styling */
-        .draft-table-container { max-height: 600px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background-color: #007bff; color: white; cursor: pointer; position: sticky; top: 0; z-index: 10; user-select: none; }
-        th:hover { background-color: #0056b3; }
-        tbody tr:nth-child(even) { background-color: #f9f9f9; }
-        tbody tr:hover:not(.drafted) { background-color: #e6f2ff; cursor: pointer; }
+.btn { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 14px; font-weight: 600; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.hot { background: var(--hot); border-color: var(--hot); color: var(--hot-ink); }
+.btn.small { padding: 3px 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
 
-        /* Drafted State */
-        .drafted { 
-            background-color: #dc3545 !important; 
-            color: white; 
-            text-decoration: line-through; 
-            opacity: 0.7;
-            transition: opacity 0.3s;
-        }
-        .drafted:hover {
-            opacity: 0.9;
-            cursor: pointer;
-        }
-        .drafted td { color: white !important; }
-        
-        /* Positional Colors */
-        .PG { color: #007bff; font-weight: bold; } /* Blue */
-        .SG { color: #28a745; font-weight: bold; } /* Green */
-        .SF { color: #ffc107; font-weight: bold; } /* Yellow */
-        .PF { color: #17a2b8; font-weight: bold; } /* Cyan */
-        .C { color: #6f42c1; font-weight: bold; } /* Purple */
-        
-        .scatter-plot { width: 100%; height: 500px; }
-    </style>
+.tablewrap { overflow: auto; max-height: 68vh; border: 1px solid var(--line); border-radius: 10px; }
+.tablewrap.wide { max-height: none; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--surface2); z-index: 1; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); cursor: pointer; user-select: none; }
+thead th.sorted { color: var(--ink); }
+td.r, th.r { text-align: right; }
+tbody tr:hover { background: var(--surface2); }
+tr.drafted td { opacity: .45; }
+tr.mine-row td { background: var(--hot-soft); opacity: 1; }
+.pname { font-weight: 600; }
+.pmeta { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.pos { display: inline-block; font-family: var(--font-mono); font-size: 11px; background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 1px 5px; margin-right: 3px; }
+.tag { display: inline-block; font-size: 12px; border-radius: 6px; padding: 1px 7px; background: var(--surface2); color: var(--muted); border: 1px solid var(--line); }
+.tag.gone { background: var(--hot-soft); color: var(--hot); border-color: var(--hot); }
+.tag.back { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.hide-stats .stat { display: none; }
+
+.ba-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.ba-row:last-child { border-bottom: 0; }
+.ba-row .sub { grid-column: 1 / 2; font-size: 12px; color: var(--muted); }
+.ba-row .act { grid-row: 1 / 3; grid-column: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+.supply { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.supply div { background: var(--surface2); border-radius: 8px; padding: 6px 4px; text-align: center; }
+.supply b { display: block; font-family: var(--font-display); font-size: 24px; line-height: 1; }
+.supply span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.slot { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--surface2); min-width: 0; }
+.slot .sl { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.slot.empty { border-style: dashed; background: transparent; }
+.slot.filled { background: var(--surface); }
+.slot .pn { font-weight: 600; overflow-wrap: anywhere; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; }
+.field { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+.field input[type="number"] { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; width: 100%; font-family: var(--font-mono); color: var(--ink); }
+textarea { width: 100%; min-height: 150px; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-family: var(--font-mono); font-size: 12px; }
+.msg { font-size: 13px; margin-top: 6px; }
+.msg.err { color: var(--bad); }
+.msg.ok { color: var(--good); }
+code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+
+@media (max-width: 1000px) {
+  .top { grid-template-columns: 1fr; }
+  .board-layout { grid-template-columns: 1fr; }
+  .rail { order: -1; }
+}
+@media (max-width: 520px) {
+  .clock { grid-template-columns: 1fr 1fr; }
+  .clock .big { font-size: 28px; }
+  h1 { font-size: 26px; }
+  .supply span { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
 </head>
 <body>
-
-    <div class="container">
-        <h1> NBA Expanded Fantasy Draft Board</h1>
-
-        <div class="controls">
-            <!-- Position Filter: Replaced Dropdown with Buttons -->
-            <div class="position-group-container">
-                <label>Filter Position:</label>
-                <div id="position-filter-buttons" class="position-buttons">
-                    <button data-pos="ALL" class="active">ALL</button>
-                    <button data-pos="PG">PG</button>
-                    <button data-pos="SG">SG</button>
-                    <button data-pos="SF">SF</button>
-                    <button data-pos="PF">PF</button>
-                    <button data-pos="C">C</button>
-                </div>
-                <button onclick="unselectAllPlayers()" class="unselect-all-btn">Un-select All</button>
-            </div>
-            
-            <div>
-                <label for="search-input">Search Player:</label>
-                <input type="text" id="search-input" onkeyup="renderTable()" placeholder="E.g., Jokic or LeBron">
-            </div>
-        </div>
-
-        <div class="draft-table-container">
-            <table id="draft-table">
-                <thead>
-                    <tr>
-                        <th data-sort-key="rank">Rank</th>
-                        <th data-sort-key="player">Player</th>
-                        <th data-sort-key="team">Team</th>
-                        <th data-sort-key="pos">Pos</th>
-                        <th data-sort-key="totalFP">Total FP <span id="totalFP-arrow">&#x25B2;</span></th>
-                        <th data-sort-key="fpPerG">FP/G</th>
-                        <th data-sort-key="g">Games</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-
-        <h2>FP/G vs. Total FP Scatter Plot</h2>
-        <div class="scatter-plot">
-            <canvas id="fantasy-chart"></canvas>
-        </div>
-
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Slot 10 Draft Board</h1>
+      <p>Sleeper points league, 10 teams, snake draft. Every value is built from your exact scoring, including the bonuses.</p>
     </div>
+    <div class="clock" id="clock"></div>
+  </header>
 
-    <script>
-        // Expanded player data (simulated for demonstration)
-        const playerData = [
-            { "player": "Nikola Jokic", "team": "DEN", "pos": "C", "g": 70.0, "totalFP": 3780.0, "fpPerG": 54.00 },
-            { "player": "Shai Gilgeous-Alexander", "team": "OKC", "pos": "PG", "g": 76.0, "totalFP": 3579.6, "fpPerG": 47.10 },
-            { "player": "Giannis Antetokounmpo", "team": "MIL", "pos": "PF", "g": 67.0, "totalFP": 3343.3, "fpPerG": 49.90 },
-            { "player": "Anthony Edwards", "team": "MIN", "pos": "SG", "g": 79.0, "totalFP": 3017.8, "fpPerG": 38.20 },
-            { "player": "Jayson Tatum", "team": "BOS", "pos": "PF", "g": 72.0, "totalFP": 3009.6, "fpPerG": 41.80 },
-            { "player": "James Harden", "team": "LAC", "pos": "PG", "g": 79.0, "totalFP": 2954.6, "fpPerG": 37.40 },
-            { "player": "Karl-Anthony Towns", "team": "NYK", "pos": "C", "g": 72.0, "totalFP": 2952.0, "fpPerG": 41.00 },
-            { "player": "Cade Cunningham", "team": "DET", "pos": "PG", "g": 70.0, "totalFP": 2835.0, "fpPerG": 40.50 },
-            { "player": "Trae Young", "team": "ATL", "pos": "PG", "g": 76.0, "totalFP": 2812.0, "fpPerG": 37.00 },
-            { "player": "LeBron James", "team": "LAL", "pos": "SF", "g": 70.0, "totalFP": 2793.0, "fpPerG": 39.90 },
-            { "player": "Ivica Zubac", "team": "LAC", "pos": "C", "g": 80.0, "totalFP": 2728.0, "fpPerG": 34.10 },
-            { "player": "Devin Booker", "team": "PHO", "pos": "SG", "g": 75.0, "totalFP": 2707.5, "fpPerG": 36.10 },
-            { "player": "Alperen Şengün", "team": "HOU", "pos": "C", "g": 76.0, "totalFP": 2698.0, "fpPerG": 35.50 },
-            { "player": "Domantas Sabonis", "team": "SAC", "pos": "C", "g": 70.0, "totalFP": 2681.0, "fpPerG": 38.30 },
-            { "player": "Bam Adebayo", "team": "MIA", "pos": "C", "g": 78.0, "totalFP": 2644.2, "fpPerG": 33.90 },
-            { "player": "Tyler Herro", "team": "MIA", "pos": "SG", "g": 77.0, "totalFP": 2633.4, "fpPerG": 34.20 },
-            { "player": "Pascal Siakam", "team": "IND", "pos": "PF", "g": 78.0, "totalFP": 2488.2, "fpPerG": 31.90 },
-            { "player": "Tyrese Haliburton", "team": "IND", "pos": "PG", "g": 73.0, "totalFP": 2474.7, "fpPerG": 33.90 },
-            { "player": "Stephen Curry", "team": "GSW", "pos": "PG", "g": 70.0, "totalFP": 2450.0, "fpPerG": 35.00 },
-            { "player": "Jaren Jackson Jr.", "team": "MEM", "pos": "C", "g": 74.0, "totalFP": 2449.4, "fpPerG": 33.10 },
-            { "player": "Nikola Vučević", "team": "CHI", "pos": "C", "g": 73.0, "totalFP": 2445.5, "fpPerG": 33.50 },
-            { "player": "Donovan Mitchell", "team": "CLE", "pos": "SG", "g": 71.0, "totalFP": 2442.4, "fpPerG": 34.40 },
-            { "player": "DeMar DeRozan", "team": "SAC", "pos": "SF", "g": 77.0, "totalFP": 2425.5, "fpPerG": 31.50 },
-            { "player": "Evan Mobley", "team": "CLE", "pos": "PF", "g": 71.0, "totalFP": 2414.0, "fpPerG": 34.00 },
-            { "player": "Jalen Williams", "team": "OKC", "pos": "SG", "g": 69.0, "totalFP": 2373.6, "fpPerG": 34.40 },
-            { "player": "Josh Hart", "team": "NYK", "pos": "SG", "g": 77.0, "totalFP": 2371.6, "fpPerG": 30.80 },
-            { "player": "Jalen Green", "team": "HOU", "pos": "SG", "g": 82.0, "totalFP": 2369.8, "fpPerG": 28.90 },
-            { "player": "Kevin Durant", "team": "PHO", "pos": "PF", "g": 62.0, "totalFP": 2337.4, "fpPerG": 37.70 },
-            { "player": "Jalen Brunson", "team": "NYK", "pos": "PG", "g": 65.0, "totalFP": 2320.5, "fpPerG": 35.70 },
-            { "player": "Zach LaVine", "team": "2TM", "pos": "SG", "g": 74.0, "totalFP": 2294.0, "fpPerG": 31.00 },
-            { "player": "Darius Garland", "team": "CLE", "pos": "PG", "g": 75.0, "totalFP": 2272.5, "fpPerG": 30.30 },
-            { "player": "Dyson Daniels", "team": "ATL", "pos": "SG", "g": 76.0, "totalFP": 2264.8, "fpPerG": 29.80 },
-            { "player": "Anthony Davis", "team": "2TM", "pos": "C", "g": 51.0, "totalFP": 2264.4, "fpPerG": 44.40 },
-            { "player": "Scottie Barnes", "team": "TOR", "pos": "PF", "g": 65.0, "totalFP": 2262.0, "fpPerG": 34.80 },
-            { "player": "Austin Reaves", "team": "LAL", "pos": "SG", "g": 73.0, "totalFP": 2255.7, "fpPerG": 30.90 },
-            { "player": "Jarrett Allen", "team": "CLE", "pos": "C", "g": 82.0, "totalFP": 2255.0, "fpPerG": 27.50 },
-            { "player": "Luka Doncic", "team": "2TM", "pos": "PG", "g": 50.0, "totalFP": 2245.0, "fpPerG": 44.90 },
-            { "player": "Jamal Murray", "team": "DEN", "pos": "PG", "g": 67.0, "totalFP": 2211.0, "fpPerG": 33.00 },
-            { "player": "De'Aaron Fox", "team": "2TM", "pos": "PG", "g": 62.0, "totalFP": 2207.2, "fpPerG": 35.60 },
-            { "player": "Desmond Bane", "team": "MEM", "pos": "SG", "g": 69.0, "totalFP": 2166.6, "fpPerG": 31.40 },
-            { "player": "Michael Porter Jr.", "team": "DEN", "pos": "SF", "g": 77.0, "totalFP": 2163.7, "fpPerG": 28.10 },
-            { "player": "Franz Wagner", "team": "ORL", "pos": "SF", "g": 60.0, "totalFP": 2142.0, "fpPerG": 35.70 },
-            { "player": "Josh Giddey", "team": "CHI", "pos": "PG", "g": 70.0, "totalFP": 2142.0, "fpPerG": 30.60 },
-            { "player": "Damian Lillard", "team": "MIL", "pos": "PG", "g": 58.0, "totalFP": 2128.6, "fpPerG": 36.70 },
-            { "player": "Derrick White", "team": "BOS", "pos": "SG", "g": 76.0, "totalFP": 2128.0, "fpPerG": 28.00 },
-            { "player": "Mikal Bridges", "team": "NYK", "pos": "SF", "g": 82.0, "totalFP": 2107.4, "fpPerG": 25.70 },
-            { "player": "OG Anunoby", "team": "NYK", "pos": "PF", "g": 74.0, "totalFP": 2101.6, "fpPerG": 28.40 },
-            { "player": "Coby White", "team": "CHI", "pos": "SG", "g": 74.0, "totalFP": 2101.6, "fpPerG": 28.40 },
-            { "player": "Victor Wembanyama", "team": "SAS", "pos": "C", "g": 46.0, "totalFP": 2097.6, "fpPerG": 45.60 },
-            { "player": "Jalen Duren", "team": "DET", "pos": "C", "g": 78.0, "totalFP": 2082.6, "fpPerG": 26.70 },
-            { "player": "Miles Bridges", "team": "CHO", "pos": "PF", "g": 64.0, "totalFP": 2073.6, "fpPerG": 32.40 },
-            { "player": "Jaylen Brown", "team": "BOS", "pos": "SF", "g": 63.0, "totalFP": 2072.7, "fpPerG": 32.90 },
-            { "player": "Deni Avdija", "team": "POR", "pos": "SF", "g": 72.0, "totalFP": 2044.8, "fpPerG": 28.40 },
-            { "player": "Amen Thompson", "team": "HOU", "pos": "SF", "g": 69.0, "totalFP": 2035.5, "fpPerG": 29.50 },
-            { "player": "Julius Randle", "team": "MIN", "pos": "PF", "g": 69.0, "totalFP": 2035.5, "fpPerG": 29.50 },
-            { "player": "Rudy Gobert", "team": "MIN", "pos": "C", "g": 72.0, "totalFP": 2008.8, "fpPerG": 27.90 },
-            { "player": "Christian Braun", "team": "DEN", "pos": "SG", "g": 79.0, "totalFP": 2006.6, "fpPerG": 25.40 },
-            { "player": "Onyeka Okongwu", "team": "ATL", "pos": "C", "g": 74.0, "totalFP": 1998.0, "fpPerG": 27.00 },
-            { "player": "Myles Turner", "team": "IND", "pos": "C", "g": 72.0, "totalFP": 1980.0, "fpPerG": 27.50 },
-            { "player": "Tyrese Maxey", "team": "PHI", "pos": "PG", "g": 52.0, "totalFP": 1960.4, "fpPerG": 37.70 },
-            { "player": "Naz Reid", "team": "MIN", "pos": "C", "g": 80.0, "totalFP": 1944.0, "fpPerG": 24.30 },
-            { "player": "Jordan Poole", "team": "WAS", "pos": "SG", "g": 68.0, "totalFP": 1931.2, "fpPerG": 28.40 },
-            { "player": "Brook Lopez", "team": "MIL", "pos": "C", "g": 80.0, "totalFP": 1896.0, "fpPerG": 23.70 },
-            { "player": "Jaden McDaniels", "team": "MIN", "pos": "PF", "g": 82.0, "totalFP": 1894.2, "fpPerG": 23.10 },
-            { "player": "Anfernee Simons", "team": "POR", "pos": "SG", "g": 70.0, "totalFP": 1876.0, "fpPerG": 26.80 },
-            { "player": "RJ Barrett", "team": "TOR", "pos": "SF", "g": 58.0, "totalFP": 1867.6, "fpPerG": 32.20 },
-            { "player": "Russell Westbrook", "team": "DEN", "pos": "PG", "g": 75.0, "totalFP": 1867.5, "fpPerG": 24.90 },
-            { "player": "Shaedon Sharpe", "team": "POR", "pos": "SG", "g": 72.0, "totalFP": 1864.8, "fpPerG": 25.90 },
-            { "player": "Stephon Castle", "team": "SAS", "pos": "PG", "g": 81.0, "totalFP": 1838.7, "fpPerG": 22.70 },
-            { "player": "Payton Pritchard", "team": "BOS", "pos": "PG", "g": 80.0, "totalFP": 1824.0, "fpPerG": 22.80 },
-            { "player": "Kyrie Irving", "team": "DAL", "pos": "SG", "g": 50.0, "totalFP": 1775.0, "fpPerG": 35.50 },
-            { "player": "Malik Beasley", "team": "DET", "pos": "SG", "g": 82.0, "totalFP": 1771.2, "fpPerG": 21.60 },
-            { "player": "Malik Monk", "team": "SAC", "pos": "SG", "g": 65.0, "totalFP": 1768.0, "fpPerG": 27.20 },
-            { "player": "Tobias Harris", "team": "DET", "pos": "PF", "g": 73.0, "totalFP": 1766.6, "fpPerG": 24.20 },
-            { "player": "Keegan Murray", "team": "SAC", "pos": "PF", "g": 76.0, "totalFP": 1755.6, "fpPerG": 23.10 },
-            { "player": "Chris Paul", "team": "SAS", "pos": "PG", "g": 82.0, "totalFP": 1754.8, "fpPerG": 21.40 },
-            { "player": "Paolo Banchero", "team": "ORL", "pos": "PF", "g": 46.0, "totalFP": 1748.0, "fpPerG": 38.00 },
-            { "player": "LaMelo Ball", "team": "CHO", "pos": "PG", "g": 47.0, "totalFP": 1724.9, "fpPerG": 36.70 },
-            { "player": "Toumani Camara", "team": "POR", "pos": "PF", "g": 78.0, "totalFP": 1723.8, "fpPerG": 22.10 },
-            { "player": "Walker Kessler", "team": "UTA", "pos": "C", "g": 58.0, "totalFP": 1711.0, "fpPerG": 29.50 },
-            { "player": "Jakob Poeltl", "team": "TOR", "pos": "C", "g": 57.0, "totalFP": 1698.6, "fpPerG": 29.80 },
-            { "player": "Quentin Grimes", "team": "2TM", "pos": "SG", "g": 75.0, "totalFP": 1695.0, "fpPerG": 22.60 },
-            { "player": "Norman Powell", "team": "LAC", "pos": "SG", "g": 60.0, "totalFP": 1686.0, "fpPerG": 28.10 },
-            { "player": "Ja Morant", "team": "MEM", "pos": "PG", "g": 50.0, "totalFP": 1685.0, "fpPerG": 33.70 },
-            { "player": "Bennedict Mathurin", "team": "IND", "pos": "SF", "g": 72.0, "totalFP": 1684.8, "fpPerG": 23.40 },
-            { "player": "Jonas Valančiūnas", "team": "2TM", "pos": "C", "g": 81.0, "totalFP": 1684.8, "fpPerG": 20.80 },
-            { "player": "Keyonte George", "team": "UTA", "pos": "PG", "g": 67.0, "totalFP": 1681.7, "fpPerG": 25.10 },
-            { "player": "Jimmy Butler", "team": "2TM", "pos": "SF", "g": 55.0, "totalFP": 1672.0, "fpPerG": 30.40 },
-            { "player": "Trey Murphy III", "team": "NOP", "pos": "SF", "g": 53.0, "totalFP": 1669.5, "fpPerG": 31.50 },
-            { "player": "CJ McCollum", "team": "NOP", "pos": "PG", "g": 56.0, "totalFP": 1652.0, "fpPerG": 29.50 },
-            { "player": "Alex Sarr", "team": "WAS", "pos": "C", "g": 67.0, "totalFP": 1648.2, "fpPerG": 24.60 },
-            { "player": "Nic Claxton", "team": "BRK", "pos": "C", "g": 70.0, "totalFP": 1631.0, "fpPerG": 23.30 },
-            { "player": "Devin Vassell", "team": "SAS", "pos": "SG", "g": 64.0, "totalFP": 1625.6, "fpPerG": 25.40 },
-            { "player": "Andrew Wiggins", "team": "2TM", "pos": "SF", "g": 60.0, "totalFP": 1620.0, "fpPerG": 27.00 },
-            { "player": "Dennis Schröder", "team": "3TM", "pos": "PG", "g": 75.0, "totalFP": 1605.0, "fpPerG": 21.40 },
-            { "player": "Isaiah Hartenstein", "team": "OKC", "pos": "C", "g": 57.0, "totalFP": 1584.6, "fpPerG": 27.80 },
-            { "player": "Draymond Green", "team": "GSW", "pos": "PF", "g": 68.0, "totalFP": 1570.8, "fpPerG": 23.10 },
-            { "player": "Cameron Johnson", "team": "BRK", "pos": "PF", "g": 57.0, "totalFP": 1561.8, "fpPerG": 27.40 },
-            { "player": "Fred VanVleet", "team": "HOU", "pos": "PG", "g": 60.0, "totalFP": 1554.0, "fpPerG": 25.90 },
-            { "player": "Yves Missi", "team": "NOP", "pos": "C", "g": 73.0, "totalFP": 1547.6, "fpPerG": 21.20 },
-            { "player": "P.J. Washington", "team": "DAL", "pos": "PF", "g": 57.0, "totalFP": 1544.7, "fpPerG": 27.10 },
-            { "player": "Kelly Oubre Jr.", "team": "PHI", "pos": "SF", "g": 60.0, "totalFP": 1542.0, "fpPerG": 25.70 },
-            { "player": "Collin Sexton", "team": "UTA", "pos": "SG", "g": 63.0, "totalFP": 1537.2, "fpPerG": 24.40 },
-            { "player": "Bub Carrington", "team": "WAS", "pos": "PG", "g": 82.0, "totalFP": 1533.4, "fpPerG": 18.70 },
-            { "player": "Keldon Johnson", "team": "SAS", "pos": "SF", "g": 77.0, "totalFP": 1532.3, "fpPerG": 19.90 },
-            { "player": "Dillon Brooks", "team": "HOU", "pos": "SF", "g": 75.0, "totalFP": 1530.0, "fpPerG": 20.40 },
-            { "player": "Harrison Barnes", "team": "SAS", "pos": "PF", "g": 82.0, "totalFP": 1525.2, "fpPerG": 18.60 },
-            { "player": "Scotty Pippen Jr.", "team": "MEM", "pos": "PG", "g": 79.0, "totalFP": 1524.7, "fpPerG": 19.30 },
-            { "player": "Tyus Jones", "team": "PHO", "pos": "PG", "g": 81.0, "totalFP": 1522.8, "fpPerG": 18.80 },
-            { "player": "Naji Marshall", "team": "DAL", "pos": "SF", "g": 69.0, "totalFP": 1504.2, "fpPerG": 21.80 },
-            { "player": "Santi Aldama", "team": "MEM", "pos": "PF", "g": 65.0, "totalFP": 1501.5, "fpPerG": 23.10 },
-            { "player": "Spencer Dinwiddie", "team": "DAL", "pos": "PG", "g": 79.0, "totalFP": 1493.1, "fpPerG": 18.90 },
-            { "player": "De'Andre Hunter", "team": "2TM", "pos": "SF", "g": 64.0, "totalFP": 1478.4, "fpPerG": 23.10 },
-            { "player": "Klay Thompson", "team": "DAL", "pos": "SF", "g": 72.0, "totalFP": 1468.8, "fpPerG": 20.40 },
-            { "player": "Kyle Kuzma", "team": "2TM", "pos": "PF", "g": 65.0, "totalFP": 1456.0, "fpPerG": 22.40 },
-            { "player": "Aaron Wiggins", "team": "OKC", "pos": "SG", "g": 76.0, "totalFP": 1428.8, "fpPerG": 18.80 },
-            { "player": "Keon Johnson", "team": "BRK", "pos": "SG", "g": 79.0, "totalFP": 1414.1, "fpPerG": 17.90 },
-            { "player": "Zaccharie Risacher", "team": "ATL", "pos": "SF", "g": 75.0, "totalFP": 1395.0, "fpPerG": 18.60 },
-            { "player": "Buddy Hield", "team": "GSW", "pos": "SG", "g": 82.0, "totalFP": 1394.0, "fpPerG": 17.00 },
-            { "player": "Brandin Podziemski", "team": "GSW", "pos": "SG", "g": 64.0, "totalFP": 1382.4, "fpPerG": 21.60 },
-            { "player": "Guerschon Yabusele", "team": "PHI", "pos": "C", "g": 70.0, "totalFP": 1379.0, "fpPerG": 19.70 },
-            { "player": "Zach Edey", "team": "MEM", "pos": "C", "g": 66.0, "totalFP": 1372.8, "fpPerG": 20.80 },
-            { "player": "Tari Eason", "team": "HOU", "pos": "PF", "g": 57.0, "totalFP": 1368.0, "fpPerG": 24.00 },
-            { "player": "T.J. McConnell", "team": "IND", "pos": "PG", "g": 79.0, "totalFP": 1366.7, "fpPerG": 17.30 },
-            { "player": "Kevin Porter Jr.", "team": "2TM", "pos": "SG", "g": 75.0, "totalFP": 1365.0, "fpPerG": 18.20 },
-            { "player": "Wendell Carter Jr.", "team": "ORL", "pos": "C", "g": 68.0, "totalFP": 1360.0, "fpPerG": 20.00 },
-            { "player": "Obi Toppin", "team": "IND", "pos": "PF", "g": 79.0, "totalFP": 1358.8, "fpPerG": 17.20 },
-            { "player": "Julian Champagnie", "team": "SAS", "pos": "SF", "g": 82.0, "totalFP": 1353.0, "fpPerG": 16.50 },
-            { "player": "Scoot Henderson", "team": "POR", "pos": "PG", "g": 66.0, "totalFP": 1353.0, "fpPerG": 20.50 },
-            { "player": "Ty Jerome", "team": "CLE", "pos": "SG", "g": 70.0, "totalFP": 1351.0, "fpPerG": 19.30 },
-            { "player": "Daniel Gafford", "team": "DAL", "pos": "C", "g": 57.0, "totalFP": 1350.9, "fpPerG": 23.70 },
-            { "player": "Royce O'Neale", "team": "PHO", "pos": "SF", "g": 75.0, "totalFP": 1342.5, "fpPerG": 17.90 },
-            { "player": "Bradley Beal", "team": "PHO", "pos": "SG", "g": 53.0, "totalFP": 1340.9, "fpPerG": 25.30 },
-            { "player": "Bilal Coulibaly", "team": "WAS", "pos": "SF", "g": 59.0, "totalFP": 1333.4, "fpPerG": 22.60 },
-            { "player": "Goga Bitadze", "team": "ORL", "pos": "C", "g": 70.0, "totalFP": 1330.0, "fpPerG": 19.00 },
-            { "player": "Mark Williams", "team": "CHO", "pos": "C", "g": 44.0, "totalFP": 1328.8, "fpPerG": 30.20 },
-            { "player": "Anthony Black", "team": "ORL", "pos": "PG", "g": 78.0, "totalFP": 1326.0, "fpPerG": 17.00 },
-            { "player": "Kristaps Porziņģis", "team": "BOS", "pos": "C", "g": 42.0, "totalFP": 1323.0, "fpPerG": 31.50 },
-            { "player": "Nickeil Alexander-Walker", "team": "MIN", "pos": "SG", "g": 82.0, "totalFP": 1320.2, "fpPerG": 16.10 },
-            { "player": "Kyle Filipowski", "team": "UTA", "pos": "C", "g": 72.0, "totalFP": 1310.4, "fpPerG": 18.20 },
-            { "player": "Jrue Holiday", "team": "BOS", "pos": "PG", "g": 62.0, "totalFP": 1308.2, "fpPerG": 21.10 },
-            { "player": "Jalen Johnson", "team": "ATL", "pos": "SF", "g": 36.0, "totalFP": 1303.2, "fpPerG": 36.20 },
-            { "player": "Luguentz Dort", "team": "OKC", "pos": "SF", "g": 71.0, "totalFP": 1299.3, "fpPerG": 18.30 },
-            { "player": "Caris LeVert", "team": "2TM", "pos": "SG", "g": 64.0, "totalFP": 1299.2, "fpPerG": 20.30 },
-            { "player": "Keon Ellis", "team": "SAC", "pos": "SG", "g": 80.0, "totalFP": 1296.0, "fpPerG": 16.20 },
-            { "player": "Kel'el Ware", "team": "MIA", "pos": "C", "g": 64.0, "totalFP": 1286.4, "fpPerG": 20.10 },
-            { "player": "Lauri Markkanen", "team": "UTA", "pos": "PF", "g": 47.0, "totalFP": 1278.4, "fpPerG": 27.20 },
-            { "player": "Donte DiVincenzo", "team": "MIN", "pos": "SG", "g": 62.0, "totalFP": 1264.8, "fpPerG": 20.40 },
-            { "player": "Jaylen Wells", "team": "MEM", "pos": "SG", "g": 79.0, "totalFP": 1264.0, "fpPerG": 16.00 },
-            { "player": "Andrew Nembhard", "team": "IND", "pos": "SG", "g": 65.0, "totalFP": 1261.0, "fpPerG": 19.40 },
-            { "player": "Max Christie", "team": "2TM", "pos": "SG", "g": 78.0, "totalFP": 1255.8, "fpPerG": 16.10 },
-            { "player": "Bobby Portis", "team": "MIL", "pos": "PF", "g": 49.0, "totalFP": 1254.4, "fpPerG": 25.60 },
-            { "player": "Isaiah Collier", "team": "UTA", "pos": "PG", "g": 71.0, "totalFP": 1249.6, "fpPerG": 17.60 },
-            { "player": "Derrick Jones Jr.", "team": "LAC", "pos": "SF", "g": 77.0, "totalFP": 1247.4, "fpPerG": 16.20 },
-            { "player": "Donovan Clingan", "team": "POR", "pos": "C", "g": 67.0, "totalFP": 1246.2, "fpPerG": 18.60 },
-            { "player": "Rui Hachimura", "team": "LAL", "pos": "PF", "g": 59.0, "totalFP": 1244.9, "fpPerG": 21.10 },
-            { "player": "D'Angelo Russell", "team": "2TM", "pos": "PG", "g": 58.0, "totalFP": 1241.2, "fpPerG": 21.40 },
-            { "player": "Ausar Thompson", "team": "DET", "pos": "SF", "g": 59.0, "totalFP": 1233.1, "fpPerG": 20.90 },
-            { "player": "Cason Wallace", "team": "OKC", "pos": "SG", "g": 68.0, "totalFP": 1224.0, "fpPerG": 18.00 },
-            { "player": "John Collins", "team": "UTA", "pos": "PF", "g": 40.0, "totalFP": 1224.0, "fpPerG": 30.60 },
-            { "player": "Jabari Smith Jr.", "team": "HOU", "pos": "PF", "g": 57.0, "totalFP": 1219.8, "fpPerG": 21.40 },
-            { "player": "Kawhi Leonard", "team": "LAC", "pos": "SF", "g": 37.0, "totalFP": 1213.6, "fpPerG": 32.80 },
-            { "player": "Taurean Prince", "team": "MIL", "pos": "SF", "g": 80.0, "totalFP": 1208.0, "fpPerG": 15.10 },
-            { "player": "Tim Hardaway Jr.", "team": "DET", "pos": "SG", "g": 77.0, "totalFP": 1201.2, "fpPerG": 15.60 },
-            { "player": "Gary Trent Jr.", "team": "MIL", "pos": "SG", "g": 74.0, "totalFP": 1198.8, "fpPerG": 16.20 },
-            { "player": "Mike Conley", "team": "MIN", "pos": "PG", "g": 71.0, "totalFP": 1192.8, "fpPerG": 16.80 },
-            { "player": "Matas Buzelis", "team": "CHI", "pos": "SF", "g": 80.0, "totalFP": 1184.0, "fpPerG": 14.80 },
-            { "player": "Kyshawn George", "team": "WAS", "pos": "SG", "g": 68.0, "totalFP": 1183.2, "fpPerG": 17.40 },
-            { "player": "Kentavious Caldwell-Pope", "team": "ORL", "pos": "SG", "g": 77.0, "totalFP": 1178.1, "fpPerG": 15.30 },
-            { "player": "Jalen Wilson", "team": "BRK", "pos": "PF", "g": 79.0, "totalFP": 1177.1, "fpPerG": 14.90 },
-            { "player": "Georges Niang", "team": "2TM", "pos": "PF", "g": 79.0, "totalFP": 1177.1, "fpPerG": 14.90 },
-            { "player": "Al Horford", "team": "BOS", "pos": "C", "g": 60.0, "totalFP": 1170.0, "fpPerG": 19.50 },
-            { "player": "Kris Dunn", "team": "LAC", "pos": "PG", "g": 74.0, "totalFP": 1169.2, "fpPerG": 15.80 },
-            { "player": "Davion Mitchell", "team": "2TM", "pos": "PG", "g": 74.0, "totalFP": 1169.2, "fpPerG": 15.80 },
-            { "player": "Aaron Gordon", "team": "DEN", "pos": "PF", "g": 51.0, "totalFP": 1167.9, "fpPerG": 22.90 },
-            { "player": "Duncan Robinson", "team": "MIA", "pos": "SF", "g": 74.0, "totalFP": 1161.8, "fpPerG": 15.70 },
-            { "player": "Kevin Huerter", "team": "2TM", "pos": "SG", "g": 69.0, "totalFP": 1159.2, "fpPerG": 16.80 },
-            { "player": "Jeremy Sochan", "team": "SAS", "pos": "PF", "g": 54.0, "totalFP": 1150.2, "fpPerG": 21.30 },
-            { "player": "Zion Williamson", "team": "NOP", "pos": "PF", "g": 30.0, "totalFP": 1149.0, "fpPerG": 38.30 },
-            { "player": "Isaiah Stewart", "team": "DET", "pos": "C", "g": 72.0, "totalFP": 1144.8, "fpPerG": 15.90 },
-            { "player": "Clint Capela", "team": "ATL", "pos": "C", "g": 55.0, "totalFP": 1144.0, "fpPerG": 20.80 },
-            { "player": "Paul George", "team": "PHI", "pos": "PF", "g": 41.0, "totalFP": 1139.8, "fpPerG": 27.80 },
-            { "player": "Moses Moody", "team": "GSW", "pos": "SG", "g": 74.0, "totalFP": 1139.6, "fpPerG": 15.40 },
-            { "player": "Ochai Agbaji", "team": "TOR", "pos": "SG", "g": 64.0, "totalFP": 1132.8, "fpPerG": 17.70 },
-            { "player": "Isaiah Joe", "team": "OKC", "pos": "SG", "g": 74.0, "totalFP": 1132.2, "fpPerG": 15.30 },
-            { "player": "Luke Kornet", "team": "BOS", "pos": "C", "g": 73.0, "totalFP": 1131.5, "fpPerG": 15.50 },
-            { "player": "Deandre Ayton", "team": "POR", "pos": "C", "g": 40.0, "totalFP": 1124.0, "fpPerG": 28.10 },
-            { "player": "Ziaire Williams", "team": "BRK", "pos": "SF", "g": 63.0, "totalFP": 1108.8, "fpPerG": 17.60 },
-            { "player": "Peyton Watson", "team": "DEN", "pos": "SF", "g": 68.0, "totalFP": 1108.4, "fpPerG": 16.30 },
-            { "player": "Terry Rozier", "team": "MIA", "pos": "PG", "g": 64.0, "totalFP": 1107.2, "fpPerG": 17.30 },
-            { "player": "Gradey Dick", "team": "TOR", "pos": "SG", "g": 54.0, "totalFP": 1107.0, "fpPerG": 20.50 },
-            { "player": "Nick Richards", "team": "2TM", "pos": "C", "g": 57.0, "totalFP": 1105.8, "fpPerG": 19.40 },
-            { "player": "Justin Champagnie", "team": "WAS", "pos": "SF", "g": 62.0, "totalFP": 1103.6, "fpPerG": 17.80 },
-            { "player": "Brice Sensabaugh", "team": "UTA", "pos": "SF", "g": 71.0, "totalFP": 1086.3, "fpPerG": 15.30 },
-            { "player": "Cole Anthony", "team": "ORL", "pos": "PG", "g": 67.0, "totalFP": 1085.4, "fpPerG": 16.20 },
-            { "player": "Miles McBride", "team": "NYK", "pos": "PG", "g": 64.0, "totalFP": 1081.6, "fpPerG": 16.90 },
-            { "player": "Jonathan Kuminga", "team": "GSW", "pos": "PF", "g": 47.0, "totalFP": 1081.0, "fpPerG": 23.00 },
-            { "player": "Jaime Jaquez Jr.", "team": "MIA", "pos": "SF", "g": 66.0, "totalFP": 1069.2, "fpPerG": 16.20 },
-            { "player": "Grayson Allen", "team": "PHO", "pos": "SG", "g": 64.0, "totalFP": 1068.8, "fpPerG": 16.70 },
-            { "player": "Jose Alvarado", "team": "NOP", "pos": "PG", "g": 56.0, "totalFP": 1064.0, "fpPerG": 19.00 },
-            { "player": "Brandon Clarke", "team": "MEM", "pos": "PF", "g": 64.0, "totalFP": 1062.4, "fpPerG": 16.60 },
-            { "player": "Kevon Looney", "team": "GSW", "pos": "C", "g": 76.0, "totalFP": 1056.4, "fpPerG": 13.90 },
-            { "player": "Jerami Grant", "team": "POR", "pos": "PF", "g": 47.0, "totalFP": 1052.8, "fpPerG": 22.40 },
-            { "player": "Jalen Smith", "team": "CHI", "pos": "C", "g": 64.0, "totalFP": 1036.8, "fpPerG": 16.20 },
-            { "player": "Jusuf Nurkić", "team": "2TM", "pos": "C", "g": 51.0, "totalFP": 1025.1, "fpPerG": 20.10 },
-            { "player": "Luke Kennard", "team": "MEM", "pos": "SG", "g": 65.0, "totalFP": 1020.5, "fpPerG": 15.70 },
-            { "player": "Dejounte Murray", "team": "NOP", "pos": "PG", "g": 31.0, "totalFP": 1016.8, "fpPerG": 32.80 },
-            { "player": "Dalton Knecht", "team": "LAL", "pos": "SF", "g": 78.0, "totalFP": 1014.0, "fpPerG": 13.00 },
-            { "player": "Moussa Diabaté", "team": "CHO", "pos": "C", "g": 71.0, "totalFP": 1008.2, "fpPerG": 14.20 },
-            { "player": "Patrick Williams", "team": "CHI", "pos": "PF", "g": 63.0, "totalFP": 1008.0, "fpPerG": 16.00 },
-            { "player": "Corey Kispert", "team": "WAS", "pos": "SF", "g": 61.0, "totalFP": 1006.5, "fpPerG": 16.50 },
-            { "player": "Mason Plumlee", "team": "PHO", "pos": "C", "g": 74.0, "totalFP": 1006.4, "fpPerG": 13.60 },
-            { "player": "Haywood Highsmith", "team": "MIA", "pos": "SF", "g": 74.0, "totalFP": 999.0, "fpPerG": 13.50 },
-            { "player": "Dorian Finney-Smith", "team": "2TM", "pos": "PF", "g": 63.0, "totalFP": 989.1, "fpPerG": 15.70 },
-            { "player": "Jonathan Isaac", "team": "ORL", "pos": "PF", "g": 71.0, "totalFP": 986.9, "fpPerG": 13.90 },
-            { "player": "Sam Hauser", "team": "BOS", "pos": "PF", "g": 71.0, "totalFP": 986.9, "fpPerG": 13.90 },
-            { "player": "Jamal Shead", "team": "TOR", "pos": "PG", "g": 75.0, "totalFP": 975.0, "fpPerG": 13.00 },
-            { "player": "Ryan Dunn", "team": "PHO", "pos": "SF", "g": 74.0, "totalFP": 962.0, "fpPerG": 13.00 },
-            { "player": "Jonathan Mogbo", "team": "TOR", "pos": "PF", "g": 63.0, "totalFP": 951.3, "fpPerG": 15.10 },
-            { "player": "Jake LaRavia", "team": "2TM", "pos": "PF", "g": 66.0, "totalFP": 943.8, "fpPerG": 14.30 },
-            { "player": "Trey Lyles", "team": "SAC", "pos": "PF", "g": 69.0, "totalFP": 931.5, "fpPerG": 13.50 },
-            { "player": "Chet Holmgren", "team": "OKC", "pos": "C", "g": 32.0, "totalFP": 928.0, "fpPerG": 29.00 },
-            { "player": "Tristan Da Silva", "team": "ORL", "pos": "SF", "g": 74.0, "totalFP": 917.6, "fpPerG": 12.40 },
-            { "player": "Dalano Banton", "team": "POR", "pos": "PG", "g": 67.0, "totalFP": 911.2, "fpPerG": 13.60 }
-        ];
+  <div class="banner" id="sampleBanner" hidden>
+    <span><b>Example data is loaded.</b> These 150 players are invented placeholders so the board has something to show. Load real per-game projections on the Data tab before the draft.</span>
+    <button class="btn small" data-action="tab" data-tab="data">Load my CSV</button>
+  </div>
 
-        let fantasyChart = null;
-        let currentSortKey = 'totalFP';
-        let isAscending = false; // Start descending for Total FP
-        let currentFilterPos = 'ALL'; // New state to track active position filter
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-action="tab" data-tab="board">Board</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="roster">My Team</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="map">Slot 10 Map</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="settings">League</button>
+    <button class="tab" role="tab" data-action="tab" data-tab="data">Data</button>
+  </nav>
 
-        /**
-         * Maps position codes to distinct Chart.js colors (used for the scatter plot).
-         */
-        function getPosColor(pos) {
-            switch (pos) {
-                case 'PG': return 'rgba(0, 123, 255, 0.8)'; // Blue
-                case 'SG': return 'rgba(40, 167, 69, 0.8)'; // Green
-                case 'SF': return 'rgba(255, 193, 7, 0.8)'; // Yellow/Gold
-                case 'PF': return 'rgba(23, 162, 184, 0.8)'; // Cyan
-                case 'C': return 'rgba(111, 66, 193, 0.8)'; // Purple
-                default: return 'rgba(108, 117, 125, 0.8)'; // Grey/Other
-            }
-        }
+  <main>
+    <section id="tab-board">
+      <div class="board-layout">
+        <div class="card" id="boardCard">
+          <div class="controls">
+            <input type="search" id="search" placeholder="Search player or team. Enter drafts the first result." autocomplete="off">
+            <div class="chips" id="posChips"></div>
+          </div>
+          <div class="controls">
+            <label class="check"><input type="checkbox" id="hideDrafted" checked> Hide drafted</label>
+            <label class="check"><input type="checkbox" id="showStats"> Show stat columns</label>
+            <button class="btn ghost small" data-action="undo" id="undoBtn">Undo last pick</button>
+          </div>
+          <div class="tablewrap" id="tableWrap">
+            <table id="boardTable">
+              <thead>
+                <tr>
+                  <th class="r" data-sort="vrank">#</th>
+                  <th data-sort="name">Player</th>
+                  <th class="r" data-sort="fp">FP/G</th>
+                  <th class="r" data-sort="gp">GP</th>
+                  <th class="r" data-sort="vorp">VORP/G</th>
+                  <th class="r" data-sort="value">Value</th>
+                  <th class="r stat" data-sort="pts">PTS</th>
+                  <th class="r stat" data-sort="reb">REB</th>
+                  <th class="r stat" data-sort="ast">AST</th>
+                  <th class="r stat" data-sort="stl">STL</th>
+                  <th class="r stat" data-sort="blk">BLK</th>
+                  <th class="r stat" data-sort="tov">TOV</th>
+                  <th class="r stat" data-sort="tpm">3PM</th>
+                  <th class="r" data-sort="ddr">DD%</th>
+                  <th class="r" data-sort="mkt">Mkt</th>
+                  <th>Next turn</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="boardBody"></tbody>
+            </table>
+          </div>
+          <p class="muted msg" id="boardNote"></p>
+        </div>
 
-        /**
-         * Toggles the drafted status of a player and re-renders the table/chart.
-         */
-        function toggleDrafted(index) {
-            const player = playerData[index];
-            player.isDrafted = !player.isDrafted;
-            renderTable();
-            renderChart();
-        }
+        <aside class="rail">
+          <div class="card">
+            <h3>Best available</h3>
+            <div id="bestList"></div>
+          </div>
+          <div class="card">
+            <h3>Starters left, by position</h3>
+            <p class="muted" style="font-size:12px;margin:4px 0 8px">Undrafted players above replacement level.</p>
+            <div class="supply" id="supply"></div>
+          </div>
+          <div class="card">
+            <h3>Recent picks</h3>
+            <div id="pickLog"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
 
-        /**
-         * Clears the drafted status for all players.
-         */
-        window.unselectAllPlayers = function() {
-            playerData.forEach(p => p.isDrafted = false);
-            renderTable();
-            renderChart();
-        }
+    <section id="tab-roster" hidden>
+      <div class="stack">
+        <div class="card">
+          <h2>Starting lineup</h2>
+          <p class="muted" id="rosterSummary" style="margin:4px 0 12px"></p>
+          <div class="slots" id="lineup"></div>
+        </div>
+        <div class="card">
+          <h2>Bench</h2>
+          <div class="slots" id="bench" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
 
-        /**
-         * Sets the active position filter based on the button clicked, updates UI, and re-renders.
-         * @param {string} pos - The position code ('ALL', 'PG', 'SG', etc.)
-         */
-        window.filterByPosition = function(pos) {
-            currentFilterPos = pos;
+    <section id="tab-map" hidden>
+      <div class="stack">
+        <div class="card">
+          <h2>Your picks from slot <span id="mapSlot"></span></h2>
+          <p class="muted" id="mapIntro" style="margin:4px 0 0"></p>
+        </div>
+        <div class="card">
+          <div class="tablewrap wide">
+            <table>
+              <thead><tr><th>Round</th><th class="r">Pick</th><th class="r">Wait since last</th><th>Players gone by then</th><th>Best value still there</th><th class="r">FP/G</th><th class="r">VORP/G</th></tr></thead>
+              <tbody id="mapBody"></tbody>
+            </table>
+          </div>
+          <p class="muted msg">Players gone is a projection from the Mkt column (ADP if you loaded it, otherwise the value rank). It updates as you log picks.</p>
+        </div>
+      </div>
+    </section>
 
-            // Update button styling
-            const buttons = document.querySelectorAll('#position-filter-buttons button');
-            buttons.forEach(button => {
-                button.classList.remove('active');
-                if (button.getAttribute('data-pos') === pos) {
-                    button.classList.add('active');
-                }
-            });
+    <section id="tab-settings" hidden>
+      <div class="stack">
+        <div class="card">
+          <h2>Scoring</h2>
+          <p class="muted" style="margin:4px 0 12px">Defaults match your Sleeper league. Change a value and the whole board recalculates.</p>
+          <div class="form-grid" id="scoringForm"></div>
+          <div class="row-actions">
+            <label class="check"><input type="checkbox" id="stackBonus"> Bonuses stack (a triple-double also earns the double-double bonus, a 50-point game also earns the 40+ bonus)</label>
+          </div>
+        </div>
+        <div class="card">
+          <h2>League and draft</h2>
+          <div class="form-grid" id="leagueForm" style="margin-top:12px"></div>
+          <div class="row-actions">
+            <button class="btn ghost" data-action="resetsettings">Reset to my league</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>How the numbers work</h2>
+          <div class="stack" style="gap:8px;margin-top:8px">
+            <p><b>FP/G</b> is projected fantasy points per game: the base categories times your weights, plus the expected bonus points per game.</p>
+            <p><b>Bonus points</b> use the double-double and triple-double rates from your CSV when it has <code>dd</code> and <code>td</code> columns. Otherwise they are estimated from the averages with a normal model. Estimated rates are marked with an asterisk in the DD% column.</p>
+            <p><b>VORP/G</b> is FP/G minus the replacement level at the player's best eligible position. Replacement level is the FP/G of the player ranked at (teams times starting slots at that position, with G, F and UTIL spread across positions, plus your bench depth setting).</p>
+            <p><b>Value</b> is VORP/G times games played. It is the number the board ranks by.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            // Re-render the table and chart with the new filter
-            renderTable();
-            renderChart();
-        }
-        
-        /**
-         * Renders the player data table based on current filters and sorting.
-         */
-        window.renderTable = function() {
-            const tableBody = document.querySelector('#draft-table tbody');
-            const search = document.getElementById('search-input').value.toLowerCase();
-            const filter = currentFilterPos; // Use global state
+    <section id="tab-data" hidden>
+      <div class="stack">
+        <div class="card">
+          <h2>Load player data</h2>
+          <p class="muted" style="margin:4px 0 10px">Paste per-game stats from a spreadsheet or CSV, or choose a file. The first row must be headers. Needed: <code>name</code>, <code>pts</code>, <code>reb</code>, <code>ast</code>. Optional: <code>team</code>, <code>pos</code>, <code>gp</code>, <code>stl</code>, <code>blk</code>, <code>tov</code>, <code>3pm</code>, <code>dd</code>, <code>td</code>, <code>adp</code>.</p>
+          <textarea id="csvIn" placeholder="Player,Team,Pos,G,PTS,TRB,AST,STL,BLK,TOV,3P&#10;Example Player,XXX,PG,70,24.1,5.2,8.3,1.4,0.4,3.1,2.6"></textarea>
+          <div class="row-actions">
+            <button class="btn" data-action="loadcsv">Load pasted data</button>
+            <label class="btn ghost" for="csvFile" style="cursor:pointer">Choose file</label>
+            <input type="file" id="csvFile" accept=".csv,.tsv,.txt" hidden>
+            <button class="btn ghost" data-action="loadsample">Use example data</button>
+          </div>
+          <p class="msg" id="loadMsg"></p>
+          <div class="stack" style="gap:6px;margin-top:10px;font-size:13px;color:var(--muted)">
+            <p>Basketball Reference column names work as they are: <code>Player</code>, <code>Tm</code>, <code>Pos</code>, <code>G</code>, <code>PTS</code>, <code>TRB</code>, <code>AST</code>, <code>STL</code>, <code>BLK</code>, <code>TOV</code>, <code>3P</code>. Repeated header rows and traded-player duplicates are skipped.</p>
+            <p>Use per-game averages, not season totals. <code>dd</code> and <code>td</code> are season totals when a <code>gp</code> column is present, and per-game rates (0 to 1) when it is not. <code>adp</code> is your draft ranking if you have one, lower is earlier.</p>
+            <p>Games played comes from the <code>gp</code> column. Without it each player gets 70.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Export the board</h2>
+          <p class="muted" style="margin:4px 0 10px">Downloads are blocked inside a published page, so copy the text and paste it into a spreadsheet.</p>
+          <div class="row-actions" style="margin-top:0;margin-bottom:10px">
+            <button class="btn" data-action="export">Build export</button>
+            <button class="btn ghost" data-action="copyexport">Copy</button>
+          </div>
+          <textarea id="exportOut" readonly placeholder="Press Build export"></textarea>
+          <p class="msg" id="exportMsg"></p>
+        </div>
+        <div class="card">
+          <h2>Draft log</h2>
+          <p class="muted" style="margin:4px 0 10px">Clear every logged pick to start a fresh draft. Your settings and player data stay.</p>
+          <button class="btn hot" data-action="resetdraft" id="resetDraftBtn">Clear draft</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-            // 1. Filter Data
-            const filteredData = playerData.filter(player => {
-                const matchesPosition = filter === 'ALL' || player.pos.includes(filter);
-                const matchesSearch = player.player.toLowerCase().includes(search);
-                return matchesPosition && matchesSearch;
-            });
+<script>
+/* ================= CORE (pure logic) ================= */
+const POS = ['PG', 'SG', 'SF', 'PF', 'C'];
+const DEFAULTS = {
+  teams: 10, slot: 10, depth: 2, stack: true, gpDefault: 70,
+  scoring: { pts: 0.5, reb: 1, ast: 1, stl: 2, blk: 2, tov: -1, tpm: 0.5, dd: 2, td: 3, p40: 2, p50: 2, a15: 2, r20: 2 },
+  roster: { PG: 1, SG: 1, G: 1, SF: 1, PF: 1, F: 1, C: 1, UTIL: 2, BN: 5 }
+};
+const SCORING_LABELS = [
+  ['pts', 'Point'], ['reb', 'Rebound'], ['ast', 'Assist'], ['stl', 'Steal'], ['blk', 'Block'], ['tov', 'Turnover'], ['tpm', '3-pointer made'],
+  ['dd', 'Double-double'], ['td', 'Triple-double'], ['p40', '40+ points'], ['p50', '50+ points'], ['a15', '15+ assists'], ['r20', '20+ rebounds']
+];
 
-            // 2. Sort Data
-            const sortedData = filteredData.sort((a, b) => {
-                const aVal = a[currentSortKey];
-                const bVal = b[currentSortKey];
+function erf(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y;
+}
+const cdf = z => 0.5 * (1 + erf(z / Math.SQRT2));
+function pAtLeast(k, mean, sd) { if (!(mean > 0)) return 0; return 1 - cdf((k - 0.5 - mean) / sd); }
+const sdPts = m => 0.24 * m + 1.8;
+const sdReb = m => 1.1 * Math.sqrt(m) + 0.3;
+const sdAst = m => 1.15 * Math.sqrt(m) + 0.3;
 
-                let comparison = 0;
-                if (typeof aVal === 'number' && typeof bVal === 'number') {
-                    comparison = aVal - bVal;
-                } else if (typeof aVal === 'string' && typeof bVal === 'string') {
-                    comparison = aVal.localeCompare(bVal);
-                }
+function estimateDD(p) {
+  const a = pAtLeast(10, p.pts, sdPts(p.pts)), b = pAtLeast(10, p.reb, sdReb(p.reb)), c = pAtLeast(10, p.ast, sdAst(p.ast));
+  const td = a * b * c;
+  const dd = a * b + a * c + b * c - 2 * td; /* at least two categories, includes triple-doubles */
+  return { dd, td };
+}
 
-                // If ascending, return comparison; if descending, return negative comparison
-                return isAscending ? comparison : -comparison;
-            });
+function fantasyPoints(p, sc, stack) {
+  const base = p.pts * sc.pts + p.reb * sc.reb + p.ast * sc.ast + p.stl * sc.stl + p.blk * sc.blk + p.tov * sc.tov + p.tpm * sc.tpm;
+  let dd = p.ddRate, td = p.tdRate, estimated = false;
+  if (dd == null || td == null) { const e = estimateDD(p); dd = e.dd; td = e.td; estimated = true; }
+  td = Math.min(td, dd);
+  const r40 = pAtLeast(40, p.pts, sdPts(p.pts)), r50 = pAtLeast(50, p.pts, sdPts(p.pts));
+  const a15 = pAtLeast(15, p.ast, sdAst(p.ast)), r20 = pAtLeast(20, p.reb, sdReb(p.reb));
+  const bonus = stack
+    ? dd * sc.dd + td * sc.td + r40 * sc.p40 + r50 * sc.p50
+    : (dd - td) * sc.dd + td * sc.td + (r40 - r50) * sc.p40 + r50 * sc.p50;
+  const extra = a15 * sc.a15 + r20 * sc.r20;
+  return { base, bonus: bonus + extra, fp: base + bonus + extra, ddr: dd, tdr: td, estimated };
+}
 
-            // 3. Render Table
-            tableBody.innerHTML = '';
-            sortedData.forEach((player, index) => {
-                // Determine the original index in the full playerData array
-                const originalIndex = playerData.findIndex(p => p.player === player.player);
-                
-                const row = tableBody.insertRow();
-                row.onclick = () => toggleDrafted(originalIndex);
-                
-                if (player.isDrafted) {
-                    row.classList.add('drafted');
-                }
+function parsePos(s) {
+  const out = new Set();
+  String(s || '').toUpperCase().split(/[\s,\/\-|]+/).filter(Boolean).forEach(t => {
+    if (POS.includes(t)) out.add(t);
+    else if (t === 'G') { out.add('PG'); out.add('SG'); }
+    else if (t === 'F') { out.add('SF'); out.add('PF'); }
+    else if (t === 'GF') { out.add('SG'); out.add('SF'); }
+    else if (t === 'FC') { out.add('PF'); out.add('C'); }
+  });
+  if (!out.size) POS.forEach(x => out.add(x));
+  return POS.filter(x => out.has(x));
+}
 
-                row.innerHTML = `
-                    <td>${player.rank}</td>
-                    <td>${player.player}</td>
-                    <td>${player.team}</td>
-                    <td class="${player.pos}">${player.pos}</td>
-                    <td>${player.totalFP.toFixed(1)}</td>
-                    <td>${player.fpPerG.toFixed(2)}</td>
-                    <td>${player.g.toFixed(1)}</td>
-                `;
-            });
+function effSlots(r) {
+  const e = { PG: r.PG, SG: r.SG, SF: r.SF, PF: r.PF, C: r.C };
+  e.PG += r.G / 2; e.SG += r.G / 2; e.SF += r.F / 2; e.PF += r.F / 2;
+  POS.forEach(p => { e[p] += r.UTIL / 5; });
+  return e;
+}
+const totalRounds = r => Object.values(r).reduce((a, b) => a + b, 0);
 
-            // Update sort arrows
-            document.querySelectorAll('#draft-table th').forEach(th => {
-                const key = th.getAttribute('data-sort-key');
-                const arrowSpan = th.querySelector('span');
-                if (arrowSpan) {
-                    arrowSpan.remove();
-                }
-                
-                if (key === currentSortKey) {
-                    const arrow = document.createElement('span');
-                    arrow.innerHTML = isAscending ? '&#x25B2;' : '&#x25BC;';
-                    th.appendChild(arrow);
-                }
-            });
-        }
-        
-        /**
-         * Renders the scatter plot using Chart.js based on current filters.
-         */
-        window.renderChart = function() {
-            const chartData = playerData.filter(player => {
-                const matchesPosition = currentFilterPos === 'ALL' || player.pos.includes(currentFilterPos);
-                return matchesPosition && !player.isDrafted; // Only show non-drafted players in the chart
-            });
+function compute(players, settings) {
+  const sc = settings.scoring;
+  players.forEach(p => {
+    const f = fantasyPoints(p, sc, settings.stack);
+    p.fp = f.fp; p.ddr = f.ddr; p.tdr = f.tdr; p.est = f.estimated;
+    p.elig = parsePos(p.pos);
+  });
+  const eff = effSlots(settings.roster);
+  const sumEff = POS.reduce((a, k) => a + eff[k], 0) || 1;
+  const repl = {};
+  POS.forEach(pos => {
+    const list = players.filter(p => p.elig.includes(pos)).map(p => p.fp).sort((a, b) => b - a);
+    const rank = Math.max(1, Math.round(settings.teams * (eff[pos] + settings.depth * eff[pos] / sumEff)));
+    repl[pos] = list.length ? list[Math.min(rank, list.length) - 1] : 0;
+  });
+  players.forEach(p => {
+    let best = -Infinity, bp = p.elig[0];
+    p.elig.forEach(pos => { const v = p.fp - repl[pos]; if (v > best) { best = v; bp = pos; } });
+    p.vorp = best; p.bestPos = bp; p.value = best * p.gp;
+  });
+  const sorted = players.slice().sort((a, b) => b.value - a.value);
+  sorted.forEach((p, i) => { p.vrank = i + 1; });
+  players.forEach(p => { p.mkt = p.adp != null ? p.adp : p.vrank; });
+  return repl;
+}
 
-            const datasets = [];
-            const positions = ['PG', 'SG', 'SF', 'PF', 'C'];
-            
-            // Group data by position for Chart.js
-            positions.forEach(pos => {
-                const posData = chartData
-                    .filter(p => p.pos.includes(pos))
-                    .map(p => ({
-                        x: p.fpPerG,
-                        y: p.totalFP,
-                        player: p.player,
-                        pos: p.pos
-                    }));
+/* Snake draft arithmetic */
+const slotOnClock = (n, teams) => { const r = Math.ceil(n / teams), i = (n - 1) % teams; return r % 2 ? i + 1 : teams - i; };
+const pickNo = (round, slot, teams) => (round - 1) * teams + (round % 2 ? slot : teams - slot + 1);
+function myPickList(settings) {
+  const rounds = totalRounds(settings.roster), out = [];
+  for (let r = 1; r <= rounds; r++) out.push({ round: r, pick: pickNo(r, settings.slot, settings.teams) });
+  return out;
+}
+function nextPickAfter(n, settings, strict) {
+  return myPickList(settings).map(x => x.pick).find(p => strict ? p > n : p >= n);
+}
 
-                if (posData.length > 0) {
-                    datasets.push({
-                        label: pos,
-                        data: posData,
-                        backgroundColor: getPosColor(pos),
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        pos: pos
-                    });
-                }
-            });
+function assignLineup(mine, roster) {
+  const slots = [];
+  POS.forEach(p => { for (let i = 0; i < roster[p]; i++) slots.push({ key: p, kind: 'pos' }); });
+  for (let i = 0; i < roster.G; i++) slots.push({ key: 'G', kind: 'flex' });
+  for (let i = 0; i < roster.F; i++) slots.push({ key: 'F', kind: 'flex' });
+  for (let i = 0; i < roster.UTIL; i++) slots.push({ key: 'UTIL', kind: 'flex' });
+  const nStart = slots.length;
+  for (let i = 0; i < roster.BN; i++) slots.push({ key: 'BN', kind: 'bench' });
+  const ok = (slot, p) => slot.kind === 'bench' || slot.key === 'UTIL' ||
+    (slot.kind === 'pos' && p.elig.includes(slot.key)) ||
+    (slot.key === 'G' && (p.elig.includes('PG') || p.elig.includes('SG'))) ||
+    (slot.key === 'F' && (p.elig.includes('SF') || p.elig.includes('PF')));
+  const extra = [];
+  mine.slice().sort((a, b) => b.value - a.value).forEach(p => {
+    const s = slots.find(sl => !sl.player && ok(sl, p));
+    if (s) s.player = p; else extra.push(p);
+  });
+  return { slots, nStart, extra };
+}
 
-            const config = {
-                type: 'scatter',
-                data: { datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fantasy Points Per Game (FP/G)',
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            beginAtZero: false,
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Total Fantasy Points (Total FP)',
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            beginAtZero: false,
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        }
-                    },
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const point = context.raw;
-                                    return [
-                                        `${point.player} (${point.pos})`,
-                                        `FP/G: ${point.x.toFixed(2)}`,
-                                        `Total FP: ${point.y.toFixed(1)}`
-                                    ];
-                                }
-                            },
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 14 }
-                        }
-                    }
-                }
-            };
+/* CSV */
+function parseDelimited(text) {
+  const first = text.split(/\r?\n/)[0] || '';
+  const delim = first.includes('\t') ? '\t' : ',';
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+    else cur += c;
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim() !== ''));
+}
+const ALIASES = {
+  name: ['name', 'player', 'playername'], team: ['team', 'tm'], pos: ['pos', 'position'], gp: ['gp', 'g', 'games'],
+  pts: ['pts', 'ppg', 'points'], reb: ['reb', 'trb', 'rpg', 'rebounds'], ast: ['ast', 'apg', 'assists'],
+  stl: ['stl', 'spg', 'steals'], blk: ['blk', 'bpg', 'blocks'], tov: ['tov', 'to', 'turnovers', 'tpg'],
+  tpm: ['3pm', '3p', 'fg3', 'fg3m', 'threes', 'tpm', '3pt', '3ptm'], dd: ['dd', 'dd2', 'doubledoubles'],
+  td: ['td', 'td3', 'tripledoubles'], adp: ['adp', 'mkt']
+};
+function importCSV(text, settings) {
+  const rows = parseDelimited(text);
+  if (rows.length < 2) throw new Error('Found no data rows. Check that the first row holds headers.');
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9%]/g, '');
+  const head = rows[0].map(norm), idx = {};
+  Object.keys(ALIASES).forEach(k => { const i = head.findIndex(h => ALIASES[k].includes(h)); if (i > -1) idx[k] = i; });
+  const need = ['name', 'pts', 'reb', 'ast'].filter(k => idx[k] == null);
+  if (need.length) throw new Error('Missing required column(s): ' + need.join(', ') + '. Found headers: ' + rows[0].join(', '));
+  const num = (r, k) => { if (idx[k] == null) return null; const v = parseFloat(String(r[idx[k]]).replace(/[^0-9.\-]/g, '')); return Number.isFinite(v) ? v : null; };
+  const seen = new Set(), out = [];
+  rows.slice(1).forEach(r => {
+    const name = (r[idx.name] || '').trim();
+    if (!name || norm(name) === 'player' || seen.has(name)) return;
+    seen.add(name);
+    const gp = num(r, 'gp');
+    const g = gp != null && gp > 0 ? Math.min(82, gp) : settings.gpDefault;
+    let dd = num(r, 'dd'), td = num(r, 'td');
+    let ddRate = null, tdRate = null;
+    if (dd != null && td != null) {
+      if (gp != null && gp > 0) { ddRate = Math.min(1, dd / gp); tdRate = Math.min(1, td / gp); }
+      else { ddRate = Math.min(1, dd); tdRate = Math.min(1, td); }
+    }
+    out.push({
+      id: 'p' + out.length, name, team: (idx.team != null ? r[idx.team] : '').trim(), pos: idx.pos != null ? r[idx.pos].trim() : '',
+      gp: g, pts: num(r, 'pts') || 0, reb: num(r, 'reb') || 0, ast: num(r, 'ast') || 0, stl: num(r, 'stl') || 0,
+      blk: num(r, 'blk') || 0, tov: num(r, 'tov') || 0, tpm: num(r, 'tpm') || 0, ddRate, tdRate, adp: num(r, 'adp')
+    });
+  });
+  if (out.length < 20) throw new Error('Only ' + out.length + ' players found. A draft board needs a full pool, ideally 150 or more.');
+  const warn = [];
+  const maxPts = Math.max.apply(null, out.map(p => p.pts));
+  if (maxPts > 50) warn.push('These look like season totals, not per-game averages. Re-export per-game stats.');
+  const missing = ['pos', 'gp', 'stl', 'blk', 'tov', 'tpm'].filter(k => idx[k] == null);
+  if (missing.length) warn.push('No column for: ' + missing.join(', ') + (missing.includes('pos') ? ' (everyone is eligible at every position without pos)' : '') + '.');
+  return { players: out, warn };
+}
 
-            const ctx = document.getElementById('fantasy-chart').getContext('2d');
+function makeSample() {
+  let s = 20261015;
+  const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+  const cyc = ['PG', 'SG', 'SF', 'PF', 'C', 'PG/SG', 'SF/PF', 'PF/C', 'SG/SF', 'C', 'PG', 'PF'];
+  const out = [];
+  for (let i = 0; i < 150; i++) {
+    const t = Math.pow(1 - i / 150, 1.2), pos = cyc[i % cyc.length];
+    const big = /C|PF/.test(pos), guard = /PG|SG/.test(pos), j = () => 0.88 + 0.24 * rnd();
+    out.push({
+      id: 'p' + i, name: 'Sample Player ' + String(i + 1).padStart(3, '0'), team: 'SMP', pos,
+      gp: Math.round(55 + 22 * rnd()), pts: +(8 + 22 * t * j()).toFixed(1),
+      reb: +((big ? 4.5 + 8 * t : 2.2 + 3.6 * t) * j()).toFixed(1), ast: +((guard ? 2 + 7.5 * t : 1 + 3 * t) * j()).toFixed(1),
+      stl: +((0.5 + 1.1 * t) * j()).toFixed(1), blk: +((big ? 0.4 + 1.8 * t : 0.2 + 0.5 * t) * j()).toFixed(1),
+      tov: +((1 + 2.3 * t) * j()).toFixed(1), tpm: +((big ? 0.3 + 1 * t : 0.8 + 2.4 * t) * j()).toFixed(1),
+      ddRate: null, tdRate: null, adp: null
+    });
+  }
+  return out;
+}
+/* ---- UI ---- */
+</script>
 
-            if (fantasyChart) {
-                fantasyChart.data = config.data;
-                fantasyChart.options = config.options;
-                fantasyChart.update();
-            } else {
-                fantasyChart = new Chart(ctx, config);
-            }
-        }
+<script>
+(function () {
+  const KEY = 'slot10-draft-board-v1';
+  let state = { settings: JSON.parse(JSON.stringify(DEFAULTS)), players: [], picks: [], sample: true, tab: 'board' };
+  const ui = { sort: 'vrank', dir: 1, pos: 'ALL', hide: true, stats: false, resetArmed: false };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const f1 = v => (Number.isFinite(v) ? v.toFixed(1) : '0.0');
 
-        /**
-         * Sets up event listeners for table header sorting.
-         */
-        function setupTableSorting() {
-            document.querySelectorAll('#draft-table th').forEach(header => {
-                header.addEventListener('click', () => {
-                    const newSortKey = header.getAttribute('data-sort-key');
-                    if (!newSortKey) return;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ settings: state.settings, picks: state.picks, sample: state.sample, tab: state.tab, players: state.players.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, gp: p.gp, pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, tov: p.tov, tpm: p.tpm, ddRate: p.ddRate, tdRate: p.tdRate, adp: p.adp })) })); } catch (e) { } }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY); if (!raw) return false;
+      const d = JSON.parse(raw);
+      if (d && Array.isArray(d.players) && d.players.length > 19 && d.settings) {
+        state.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), d.settings);
+        state.settings.scoring = Object.assign({}, DEFAULTS.scoring, d.settings.scoring);
+        state.settings.roster = Object.assign({}, DEFAULTS.roster, d.settings.roster);
+        state.players = d.players; state.picks = Array.isArray(d.picks) ? d.picks : []; state.sample = !!d.sample; state.tab = d.tab || 'board';
+        return true;
+      }
+    } catch (e) { }
+    return false;
+  }
 
-                    if (newSortKey === currentSortKey) {
-                        isAscending = !isAscending;
-                    } else {
-                        currentSortKey = newSortKey;
-                        // Default sort order: ascending for rank/player, descending for stats
-                        isAscending = (newSortKey === 'rank' || newSortKey === 'player' || newSortKey === 'team' || newSortKey === 'pos');
-                    }
-                    renderTable();
-                });
-            });
-        }
+  let repl = {};
+  const byId = () => { const m = {}; state.players.forEach(p => { m[p.id] = p; }); return m; };
+  const takenSet = () => new Set(state.picks.map(x => x.id));
+  const rounds = () => totalRounds(state.settings.roster);
+  const nowPick = () => state.picks.length + 1;
+  const draftDone = () => nowPick() > rounds() * state.settings.teams;
 
+  function remainingByMarket() {
+    const t = takenSet();
+    return state.players.filter(p => !t.has(p.id)).sort((a, b) => a.mkt - b.mkt || b.value - a.value);
+  }
+  function wheelInfo() {
+    const n = nowPick(), s = state.settings;
+    if (draftDone()) return null;
+    const onClock = slotOnClock(n, s.teams) === s.slot;
+    const T = nextPickAfter(n, s, onClock);
+    if (!T) return null;
+    const gone = T - n - (onClock ? 1 : 0);
+    const ranks = {};
+    remainingByMarket().forEach((p, i) => { ranks[p.id] = i + 1; });
+    return { T, gone, ranks, onClock };
+  }
+  function tagFor(p, w) {
+    if (!w) return '';
+    const r = w.ranks[p.id];
+    if (r == null) return '';
+    if (w.gone === 0) return '<span class="tag back">Still there at #' + w.T + '</span>';
+    if (r <= w.gone - 3) return '<span class="tag gone">Gone by #' + w.T + '</span>';
+    if (r >= w.gone + 4) return '<span class="tag back">Back at #' + w.T + '</span>';
+    return '<span class="tag">Toss-up for #' + w.T + '</span>';
+  }
 
-        // Initialize the App
-        document.addEventListener('DOMContentLoaded', () => {
-            // Assign ranks to player data
-            playerData.forEach((p, i) => p.rank = i + 1);
+  function recompute() { repl = compute(state.players, state.settings); }
 
-            // Set up position filter buttons
-            const positionButtonsContainer = document.getElementById('position-filter-buttons');
-            if (positionButtonsContainer) {
-                positionButtonsContainer.querySelectorAll('button').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const pos = button.getAttribute('data-pos');
-                        filterByPosition(pos);
-                    });
-                });
-            }
-            
-            // Set up initial sorting (Total FP descending)
-            isAscending = false;
-            currentSortKey = 'totalFP';
+  /* ---------- renderers ---------- */
+  function renderClock() {
+    const s = state.settings, n = nowPick(), el = $('clock');
+    if (draftDone()) { el.className = 'clock'; el.innerHTML = '<div><div class="lbl">Draft</div><div class="big">Complete</div></div>'; return; }
+    const r = Math.ceil(n / s.teams), slot = slotOnClock(n, s.teams), mine = slot === s.slot;
+    const nxt = nextPickAfter(n, s, false), away = nxt ? nxt - n : 0;
+    el.className = 'clock' + (mine ? ' mine' : '');
+    el.innerHTML =
+      '<div><div class="lbl">On the clock</div><div class="big">' + (mine ? 'You' : 'Slot ' + slot) + '</div><div class="sub">Pick #' + n + ', round ' + r + '</div></div>' +
+      '<div><div class="lbl">Your next pick</div><div class="big">' + (nxt ? '#' + nxt : 'None') + '</div><div class="sub">' + (nxt ? (away === 0 ? 'Right now' : 'In ' + away + ' pick' + (away === 1 ? '' : 's')) : 'Roster is full') + '</div></div>' +
+      '<div><div class="lbl">Your picks made</div><div class="big">' + state.picks.filter(x => x.by === 'me').length + '<span class="muted" style="font-size:18px"> / ' + rounds() + '</span></div><div class="sub">' + state.picks.length + ' of ' + (rounds() * s.teams) + ' overall</div></div>';
+  }
 
-            setupTableSorting();
+  function sortedRows() {
+    const t = takenSet(), q = $('search').value.trim().toLowerCase();
+    let rows = state.players.filter(p => {
+      if (ui.hide && t.has(p.id)) return false;
+      if (ui.pos !== 'ALL' && !p.elig.includes(ui.pos) && !(ui.pos === 'G' && (p.elig.includes('PG') || p.elig.includes('SG'))) && !(ui.pos === 'F' && (p.elig.includes('SF') || p.elig.includes('PF')))) return false;
+      if (q && !(p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q))) return false;
+      return true;
+    });
+    const k = ui.sort, d = ui.dir;
+    rows.sort((a, b) => {
+      if (k === 'name') return d * a.name.localeCompare(b.name);
+      if (k === 'vrank' || k === 'mkt') return d * (a[k] - b[k]);
+      return -d * (a[k] - b[k]);
+    });
+    return rows;
+  }
 
-            // Initial rendering
-            renderTable();
-            renderChart();
-        });
+  function renderBoard() {
+    const rows = sortedRows(), w = wheelInfo(), t = takenSet(), mineIds = new Set(state.picks.filter(x => x.by === 'me').map(x => x.id));
+    const shown = rows.slice(0, 250);
+    $('boardBody').innerHTML = shown.map(p => {
+      const drafted = t.has(p.id);
+      return '<tr class="' + (mineIds.has(p.id) ? 'mine-row' : drafted ? 'drafted' : '') + '">' +
+        '<td class="r num">' + p.vrank + '</td>' +
+        '<td><span class="pname">' + esc(p.name) + '</span><span class="pmeta">' + esc(p.team) + '</span> ' + p.elig.map(x => '<span class="pos">' + x + '</span>').join('') + '</td>' +
+        '<td class="r num">' + f1(p.fp) + '</td><td class="r num">' + Math.round(p.gp) + '</td>' +
+        '<td class="r num">' + f1(p.vorp) + '</td><td class="r num"><b>' + Math.round(p.value) + '</b></td>' +
+        ['pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'tpm'].map(k => '<td class="r num stat">' + f1(p[k]) + '</td>').join('') +
+        '<td class="r num">' + Math.round(p.ddr * 100) + '%' + (p.est ? '*' : '') + '</td>' +
+        '<td class="r num">' + (p.adp != null ? p.adp : '-') + '</td>' +
+        '<td>' + (drafted ? '<span class="tag">' + (mineIds.has(p.id) ? 'Yours' : 'Taken') + '</span>' : tagFor(p, w)) + '</td>' +
+        '<td>' + (drafted || draftDone() ? '' : '<button class="btn small' + (w && w.onClock ? ' hot' : '') + '" data-action="draft" data-id="' + p.id + '">Draft</button>') + '</td></tr>';
+    }).join('');
+    document.querySelectorAll('#boardTable thead th[data-sort]').forEach(th => {
+      th.classList.toggle('sorted', th.dataset.sort === ui.sort);
+      th.setAttribute('aria-sort', th.dataset.sort === ui.sort ? (ui.dir === 1 ? 'ascending' : 'descending') : 'none');
+    });
+    $('boardNote').textContent = 'Showing ' + shown.length + ' of ' + rows.length + ' players.' + (state.players.some(p => p.est) ? ' An asterisk on DD% means the rate is estimated from averages.' : '');
+    $('boardCard').classList.toggle('hide-stats', !ui.stats);
+    $('undoBtn').disabled = !state.picks.length;
+  }
 
-    </script>
+  function renderRail() {
+    const w = wheelInfo(), t = takenSet();
+    const rem = state.players.filter(p => !t.has(p.id)).sort((a, b) => b.value - a.value);
+    $('bestList').innerHTML = rem.slice(0, 8).map(p =>
+      '<div class="ba-row"><div><span class="pname">' + esc(p.name) + '</span> ' + p.elig.map(x => '<span class="pos">' + x + '</span>').join('') + '</div>' +
+      '<div class="act">' + (draftDone() ? '' : '<button class="btn small" data-action="draft" data-id="' + p.id + '">Draft</button>') + '</div>' +
+      '<div class="sub">' + f1(p.fp) + ' FP/G, VORP ' + f1(p.vorp) + ' ' + tagFor(p, w) + '</div></div>').join('') || '<p class="muted">No players left.</p>';
+    $('supply').innerHTML = POS.map(pos => {
+      const c = rem.filter(p => p.elig.includes(pos) && p.fp > repl[pos]).length;
+      return '<div><b>' + c + '</b><span>' + pos + '</span></div>';
+    }).join('');
+    const id = byId();
+    $('pickLog').innerHTML = state.picks.length ? state.picks.slice(-8).reverse().map((x, i) => {
+      const n = state.picks.length - i, p = id[x.id];
+      return '<div class="ba-row" style="grid-template-columns:minmax(0,1fr)"><div><span class="mono muted">#' + n + '</span> <span class="pname">' + esc(p ? p.name : x.id) + '</span> ' + (x.by === 'me' ? '<span class="tag gone">You</span>' : '<span class="tag">Slot ' + slotOnClock(n, state.settings.teams) + '</span>') + '</div></div>';
+    }).join('') : '<p class="muted">No picks logged yet. Press Draft beside a player as each pick is made in Sleeper.</p>';
+  }
+
+  function slotHTML(s) {
+    const label = s.key === 'BN' ? 'Bench' : s.key;
+    return s.player
+      ? '<div class="slot filled"><div class="sl">' + label + '</div><div class="pn">' + esc(s.player.name) + '</div><div class="muted mono" style="font-size:12px">' + s.player.elig.join('/') + ' &middot; ' + f1(s.player.fp) + ' FP/G</div></div>'
+      : '<div class="slot empty"><div class="sl">' + label + '</div><div class="muted">Open</div></div>';
+  }
+  function renderRoster() {
+    const id = byId(), mine = state.picks.filter(x => x.by === 'me').map(x => id[x.id]).filter(Boolean);
+    const a = assignLineup(mine, state.settings.roster);
+    const starters = a.slots.slice(0, a.nStart), bench = a.slots.slice(a.nStart);
+    const fp = starters.reduce((s, x) => s + (x.player ? x.player.fp : 0), 0);
+    $('rosterSummary').textContent = mine.length ? 'Projected starting lineup: ' + f1(fp) + ' fantasy points per game across ' + starters.filter(x => x.player).length + ' of ' + starters.length + ' slots filled.' : 'Your drafted players appear here as you log your picks.';
+    $('lineup').innerHTML = starters.map(slotHTML).join('');
+    $('bench').innerHTML = bench.map(slotHTML).join('') + a.extra.map(p => '<div class="slot filled"><div class="sl">Over roster</div><div class="pn">' + esc(p.name) + '</div></div>').join('');
+  }
+
+  function renderMap() {
+    const s = state.settings, n = nowPick(), id = byId(), pool = remainingByMarket();
+    $('mapSlot').textContent = s.slot;
+    const list = myPickList(s);
+    const gaps = list.map((x, i) => i ? x.pick - list[i - 1].pick : null);
+    $('mapIntro').textContent = 'In a ' + s.teams + '-team snake you pick at #' + list.slice(0, 6).map(x => x.pick).join(', #') + ' and so on. The waits between picks alternate between ' + Math.min.apply(null, gaps.slice(1)) + ' and ' + Math.max.apply(null, gaps.slice(1)) + ' players.';
+    const mineIdx = state.picks.map((x, i) => x.by === 'me' ? i + 1 : 0).filter(Boolean);
+    $('mapBody').innerHTML = list.map((x, i) => {
+      const gap = gaps[i] == null ? '-' : gaps[i] - 1;
+      if (x.pick < n) {
+        const pk = state.picks[x.pick - 1], p = pk && id[pk.id];
+        return '<tr class="drafted"><td>' + x.round + '</td><td class="r num">#' + x.pick + '</td><td class="r num">' + gap + '</td><td>Done</td><td>' + (p ? esc(p.name) + ' <span class="tag">' + (pk.by === 'me' ? 'Yours' : 'Taken by slot ' + slotOnClock(x.pick, s.teams)) + '</span>' : '') + '</td><td class="r num">' + (p ? f1(p.fp) : '') + '</td><td class="r num">' + (p ? f1(p.vorp) : '') + '</td></tr>';
+      }
+      const k = x.pick - n, avail = pool.slice(k);
+      const best = avail.slice().sort((a, b) => b.value - a.value)[0];
+      return '<tr><td>' + x.round + '</td><td class="r num"><b>#' + x.pick + '</b></td><td class="r num">' + gap + '</td><td class="num">' + k + '</td><td>' + (best ? '<b>' + esc(best.name) + '</b> ' + best.elig.map(z => '<span class="pos">' + z + '</span>').join('') : 'None') + '</td><td class="r num">' + (best ? f1(best.fp) : '') + '</td><td class="r num">' + (best ? f1(best.vorp) : '') + '</td></tr>';
+    }).join('');
+  }
+
+  function renderSettings() {
+    const s = state.settings;
+    $('scoringForm').innerHTML = SCORING_LABELS.map(a => '<label class="field">' + a[1] + '<input type="number" step="0.5" data-path="scoring.' + a[0] + '" value="' + s.scoring[a[0]] + '"></label>').join('');
+    const rl = [['teams', 'Teams'], ['slot', 'Your draft slot'], ['depth', 'Bench depth in replacement level'], ['gpDefault', 'Default games played']];
+    $('leagueForm').innerHTML = rl.map(a => '<label class="field">' + a[1] + '<input type="number" step="1" min="0" data-path="' + a[0] + '" value="' + s[a[0]] + '"></label>').join('') +
+      ['PG', 'SG', 'G', 'SF', 'PF', 'F', 'C', 'UTIL', 'BN'].map(k => '<label class="field">Roster: ' + k + '<input type="number" step="1" min="0" data-path="roster.' + k + '" value="' + s.roster[k] + '"></label>').join('');
+    $('stackBonus').checked = !!s.stack;
+  }
+
+  function renderChips() {
+    $('posChips').innerHTML = ['ALL', 'PG', 'SG', 'SF', 'PF', 'C', 'G', 'F'].map(p => '<button class="chip" data-action="pos" data-pos="' + p + '" aria-pressed="' + (ui.pos === p) + '">' + p + '</button>').join('');
+  }
+  function renderTabs() {
+    document.querySelectorAll('#tabs .tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
+    ['board', 'roster', 'map', 'settings', 'data'].forEach(t => { $('tab-' + t).hidden = t !== state.tab; });
+  }
+  function renderAll() {
+    renderTabs(); renderClock(); renderChips(); renderBoard(); renderRail(); renderRoster(); renderMap();
+    $('sampleBanner').hidden = !state.sample;
+    $('resetDraftBtn').textContent = ui.resetArmed ? 'Click again to clear every pick' : 'Clear draft';
+  }
+  function refresh() { recompute(); renderAll(); save(); }
+
+  /* ---------- actions ---------- */
+  function draft(id) {
+    if (draftDone() || takenSet().has(id)) return;
+    const n = nowPick();
+    state.picks.push({ id, by: slotOnClock(n, state.settings.teams) === state.settings.slot ? 'me' : 'other' });
+    refresh();
+  }
+  function setLoaded(players, sample, msg, cls) {
+    state.players = players; state.picks = []; state.sample = sample;
+    recompute(); renderSettings(); renderAll(); save();
+    const m = $('loadMsg'); m.textContent = msg; m.className = 'msg ' + cls;
+  }
+  function loadCSVText(text) {
+    try {
+      const r = importCSV(text, state.settings);
+      setLoaded(r.players, false, 'Loaded ' + r.players.length + ' players. The draft log was cleared.' + (r.warn.length ? ' ' + r.warn.join(' ') : ''), r.warn.length ? 'err' : 'ok');
+    } catch (e) { const m = $('loadMsg'); m.textContent = e.message; m.className = 'msg err'; }
+  }
+  function buildExport() {
+    const t = takenSet(), q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const head = ['Rank', 'Player', 'Team', 'Pos', 'FP/G', 'GP', 'VORP/G', 'Value', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TOV', '3PM', 'DD rate', 'TD rate', 'Mkt', 'Status'];
+    const rows = state.players.slice().sort((a, b) => a.vrank - b.vrank).map(p => [p.vrank, q(p.name), q(p.team), q(p.pos), f1(p.fp), Math.round(p.gp), f1(p.vorp), Math.round(p.value), p.pts, p.reb, p.ast, p.stl, p.blk, p.tov, p.tpm, p.ddr.toFixed(3), p.tdr.toFixed(3), p.mkt, t.has(p.id) ? 'Drafted' : 'Available'].join(','));
+    $('exportOut').value = head.join(',') + '\n' + rows.join('\n');
+    $('exportMsg').textContent = rows.length + ' rows ready.'; $('exportMsg').className = 'msg ok';
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-action]'); if (!b) return;
+    const a = b.dataset.action;
+    if (a !== 'resetdraft' && ui.resetArmed) { ui.resetArmed = false; $('resetDraftBtn').textContent = 'Clear draft'; }
+    if (a === 'tab') { state.tab = b.dataset.tab; renderTabs(); save(); }
+    else if (a === 'draft') draft(b.dataset.id);
+    else if (a === 'undo') { state.picks.pop(); refresh(); }
+    else if (a === 'pos') { ui.pos = b.dataset.pos; renderChips(); renderBoard(); }
+    else if (a === 'loadcsv') loadCSVText($('csvIn').value);
+    else if (a === 'loadsample') setLoaded(makeSample(), true, 'Example data loaded.', 'ok');
+    else if (a === 'export') buildExport();
+    else if (a === 'copyexport') {
+      const ta = $('exportOut'); if (!ta.value) buildExport();
+      const ok = () => { $('exportMsg').textContent = 'Copied.'; $('exportMsg').className = 'msg ok'; };
+      const fb = () => { ta.focus(); ta.select(); $('exportMsg').textContent = 'Press Ctrl+C (or Cmd+C) to copy the selected text.'; $('exportMsg').className = 'msg'; };
+      try { navigator.clipboard.writeText(ta.value).then(ok, fb); } catch (err) { fb(); }
+    }
+    else if (a === 'resetdraft') {
+      if (!ui.resetArmed) { ui.resetArmed = true; b.textContent = 'Click again to clear every pick'; return; }
+      ui.resetArmed = false; state.picks = []; refresh();
+    }
+    else if (a === 'resetsettings') {
+      state.settings = JSON.parse(JSON.stringify(DEFAULTS)); renderSettings(); refresh();
+    }
+  });
+
+  $('tableWrap').addEventListener('click', e => { });
+  document.querySelector('#boardTable thead').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]'); if (!th) return;
+    const k = th.dataset.sort;
+    if (ui.sort === k) ui.dir = -ui.dir; else { ui.sort = k; ui.dir = 1; }
+    renderBoard();
+  });
+  $('search').addEventListener('input', renderBoard);
+  $('search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const r = sortedRows(); if (r.length && !takenSet().has(r[0].id)) { draft(r[0].id); $('search').value = ''; renderBoard(); } }
+  });
+  $('hideDrafted').addEventListener('change', e => { ui.hide = e.target.checked; renderBoard(); });
+  $('showStats').addEventListener('change', e => { ui.stats = e.target.checked; renderBoard(); });
+  $('stackBonus').addEventListener('change', e => { state.settings.stack = e.target.checked; refresh(); });
+  document.addEventListener('change', e => {
+    const el = e.target.closest('[data-path]'); if (!el) return;
+    const v = parseFloat(el.value); if (!Number.isFinite(v)) return;
+    const path = el.dataset.path.split('.');
+    let o = state.settings; for (let i = 0; i < path.length - 1; i++) o = o[path[i]];
+    o[path[path.length - 1]] = v;
+    if (path[0] === 'slot') state.settings.slot = Math.min(Math.max(1, Math.round(v)), state.settings.teams);
+    refresh();
+  });
+  $('csvFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { $('csvIn').value = r.result; loadCSVText(String(r.result)); };
+    r.readAsText(f);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); state.tab = 'board'; renderTabs(); $('search').focus(); }
+  });
+
+  /* ---------- boot ---------- */
+  if (!load()) { state.players = makeSample(); state.sample = true; }
+  if (!state.players.length) { state.players = makeSample(); state.sample = true; }
+  renderSettings(); recompute(); renderAll();
+})();
+</script>
 </body>
 </html>
